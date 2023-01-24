@@ -279,7 +279,7 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockIn) {
 			shuttlecockInString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 6 {
 				break
 			}
 		}
