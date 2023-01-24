@@ -14,6 +14,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 	app.Post("/bus/arrival", controller.BusArrival)
+	app.Post("/shuttle/arrival", controller.ShuttleArrival)
 
 	err := app.Listen(":3000")
 	if err != nil {
