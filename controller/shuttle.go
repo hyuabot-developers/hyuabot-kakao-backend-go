@@ -128,27 +128,27 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		dormitoryString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(dormitoryStation) {
-			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
-	dormitoryString += "예술인 방면\n\n"
+	dormitoryString += "\n예술인 방면\n\n"
 	if len(dormitoryTerminal) == 0 {
 		dormitoryString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(dormitoryTerminal) {
-			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
 	if len(dormitoryJungang) > 0 {
-		dormitoryString += "중앙역 방면\n\n"
+		dormitoryString += "\n중앙역 방면\n\n"
 		for i, item := range sortShuttleArrivalItem(dormitoryJungang) {
-			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
@@ -166,27 +166,27 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		shuttlecockOutString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutStation) {
-			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
-	shuttlecockOutString += "예술인 방면\n\n"
+	shuttlecockOutString += "\n예술인 방면\n\n"
 	if len(shuttlecockOutTerminal) == 0 {
 		shuttlecockOutString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutTerminal) {
-			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
 	if len(shuttlecockOutJungang) > 0 {
-		shuttlecockOutString += "중앙역 방면\n\n"
+		shuttlecockOutString += "\n중앙역 방면\n\n"
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutTerminal) {
-			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
@@ -204,27 +204,27 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		stationString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(stationCampus) {
-			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
 	if len(stationJungang) > 0 {
-		stationString += "중앙역 방면\n\n"
+		stationString += "\n중앙역 방면\n\n"
 		for i, item := range sortShuttleArrivalItem(stationJungang) {
-			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
 		}
 	}
-	stationString += "예술인 방면\n\n"
+	stationString += "\n예술인 방면\n\n"
 	if len(stationTerminal) == 0 {
 		stationString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(stationTerminal) {
-			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
@@ -242,7 +242,7 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		terminalString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(terminalCampus) {
-			terminalString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			terminalString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 6 {
 				break
 			}
@@ -260,7 +260,7 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		jungangString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(jungangCampus) {
-			jungangString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			jungangString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 6 {
 				break
 			}
@@ -278,7 +278,7 @@ func ShuttleArrival(c *fiber.Ctx) error {
 		shuttlecockInString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockIn) {
-			shuttlecockInString += strconv.Itoa(item.ArrivalTime) + "분 후 도착(" + getHeadingString(item.Tag) + ")\n"
+			shuttlecockInString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
 			if i == 2 {
 				break
 			}
