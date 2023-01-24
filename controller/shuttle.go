@@ -298,12 +298,6 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	cardList = append(cardList, terminalCard)
 	cardList = append(cardList, jungangCard)
 	cardList = append(cardList, shuttlecockInCard)
-
-	quickReplies = append(quickReplies, model.QuickReply{Action: "block", Label: "🏘️ 기숙사", MessageText: "🏘️ 기숙사", BlockID: "5ebf702e7a9c4b000105fb25"})
-	quickReplies = append(quickReplies, model.QuickReply{Action: "block", Label: "🏫  셔틀콕", MessageText: "🏫 셔틀콕", BlockID: "5ebf702e7a9c4b000105fb25"})
-	quickReplies = append(quickReplies, model.QuickReply{Action: "block", Label: "🚆 한대앞역", MessageText: "🚆 한대앞역", BlockID: "5ebf702e7a9c4b000105fb25"})
-	quickReplies = append(quickReplies, model.QuickReply{Action: "block", Label: "🚍 예술인A", MessageText: "🚍 예술인A", BlockID: "5ebf702e7a9c4b000105fb25"})
-	quickReplies = append(quickReplies, model.QuickReply{Action: "block", Label: "🏫 셔틀콕 건너편", MessageText: "🏫 셔틀콕 건너편", BlockID: "5ebf702e7a9c4b000105fb25"})
 	response := util.SetResponse(
 		util.SetTemplate([]model.Components{util.SetBasicCardCarousel(cardList)}, quickReplies))
 	return c.JSON(response)
