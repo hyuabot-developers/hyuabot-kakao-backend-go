@@ -15,6 +15,7 @@ func main() {
 	}))
 	app.Post("/bus/arrival", controller.BusArrival)
 	app.Post("/shuttle/arrival", controller.ShuttleArrival)
+	app.Post("/subway/arrival", controller.Subway)
 
 	err := app.Listen(":3000")
 	if err != nil {
