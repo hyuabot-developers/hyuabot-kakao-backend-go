@@ -17,7 +17,7 @@ func CafeteriaMenu(c *fiber.Ctx) error {
 		} else {
 			for _, menu := range restaurant.Menu[0].MenuList {
 				description += menu.Food + "\n"
-				description += menu.Price + "원\n"
+				description += menu.Price + "원\n\n"
 			}
 		}
 		cardList = append(cardList, model.TextCard{

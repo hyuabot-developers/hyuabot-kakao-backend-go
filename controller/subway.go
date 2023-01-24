@@ -17,14 +17,17 @@ func Subway(c *fiber.Ctx) error {
 
 	message += "서울 방면\n"
 	for i, item := range line4.Realtime.Up {
-		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착(" + item.Location + ")\n"
-		if i >= 2 {
+		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착 (" + item.Location + ")\n"
+		if i >= 4 {
 			break
 		}
 	}
 	message += "\n오이도 방면\n"
-	for _, item := range line4.Realtime.Down {
-		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착\n"
+	for i, item := range line4.Realtime.Down {
+		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착 (" + item.Location + ")\n"
+		if i >= 4 {
+			break
+		}
 	}
 
 	cardList = append(cardList, model.TextCard{
@@ -34,12 +37,18 @@ func Subway(c *fiber.Ctx) error {
 	})
 
 	message = "수원 방면\n"
-	for _, item := range lineSuinBundang.Realtime.Up {
-		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착\n"
+	for i, item := range lineSuinBundang.Realtime.Up {
+		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착 (" + item.Location + ")\n"
+		if i >= 4 {
+			break
+		}
 	}
 	message += "\n인천 방면\n"
-	for _, item := range lineSuinBundang.Realtime.Down {
-		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착\n"
+	for i, item := range lineSuinBundang.Realtime.Down {
+		message += item.Terminal + "행 " + strconv.Itoa(item.Time) + "분 후 도착 (" + item.Location + ")\n"
+		if i >= 4 {
+			break
+		}
 	}
 
 	cardList = append(cardList, model.TextCard{
