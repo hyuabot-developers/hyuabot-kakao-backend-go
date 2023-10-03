@@ -35,6 +35,18 @@ func ShuttleArrival(c *fiber.Ctx) error {
 
 	shuttlecockIn := make([]ShuttleArrivalItem, 0)
 
+	cardButtons := make([]model.CardButton, 0)
+	cardButtons = append(cardButtons, model.CardButton{
+		Action: "webLink",
+		Label:  "안드로이드 앱 설치",
+		Link:   "https://play.google.com/store/apps/details?id=app.kobuggi.hyuabot",
+	})
+	cardButtons = append(cardButtons, model.CardButton{
+		Action: "webLink",
+		Label:  "iOS 앱 설치",
+		Link:   "https://apps.apple.com/kr/app/%ED%9C%B4%EC%95%84%EB%B4%87/id6467175381",
+	})
+
 	for _, stop := range arrivalResponse.Stop {
 		if stop.Name == "dormitory_o" {
 			for _, route := range stop.Route {
@@ -122,34 +134,34 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	}
 
 	dormitoryString := ""
-	dormitoryString += "한대앞 방면\n\n"
+	dormitoryString += "한대앞 방면\n"
 
 	if len(dormitoryStation) == 0 {
 		dormitoryString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(dormitoryStation) {
 			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
-	dormitoryString += "\n예술인 방면\n\n"
+	dormitoryString += "\n예술인 방면\n"
 	if len(dormitoryTerminal) == 0 {
 		dormitoryString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(dormitoryTerminal) {
 			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
 	if len(dormitoryJungang) > 0 {
-		dormitoryString += "\n중앙역 방면\n\n"
+		dormitoryString += "\n중앙역 방면\n"
 		for i, item := range sortShuttleArrivalItem(dormitoryJungang) {
 			dormitoryString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
@@ -157,37 +169,37 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	dormitoryCard := model.TextCard{
 		Title:       "기숙사",
 		Description: strings.TrimRight(dormitoryString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	shuttlecockOutString := ""
-	shuttlecockOutString += "한대앞 방면\n\n"
+	shuttlecockOutString += "한대앞 방면\n"
 	if len(shuttlecockOutStation) == 0 {
 		shuttlecockOutString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutStation) {
 			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
-	shuttlecockOutString += "\n예술인 방면\n\n"
+	shuttlecockOutString += "\n예술인 방면\n"
 	if len(shuttlecockOutTerminal) == 0 {
 		shuttlecockOutString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutTerminal) {
 			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
 	if len(shuttlecockOutJungang) > 0 {
-		shuttlecockOutString += "\n중앙역 방면\n\n"
+		shuttlecockOutString += "\n중앙역 방면\n"
 		for i, item := range sortShuttleArrivalItem(shuttlecockOutTerminal) {
 			shuttlecockOutString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
@@ -195,37 +207,37 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	shuttlecockOutCard := model.TextCard{
 		Title:       "셔틀콕",
 		Description: strings.Trim(shuttlecockOutString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	stationString := ""
-	stationString += "캠퍼스 방면\n\n"
+	stationString += "캠퍼스 방면\n"
 	if len(stationCampus) == 0 {
 		stationString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(stationCampus) {
 			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
 	if len(stationJungang) > 0 {
-		stationString += "\n중앙역 방면\n\n"
+		stationString += "\n중앙역 방면\n"
 		for i, item := range sortShuttleArrivalItem(stationJungang) {
 			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
 	}
-	stationString += "\n예술인 방면\n\n"
+	stationString += "\n예술인 방면\n"
 	if len(stationTerminal) == 0 {
 		stationString += "운행 종료\n"
 	} else {
 		for i, item := range sortShuttleArrivalItem(stationTerminal) {
 			stationString += strconv.Itoa(item.ArrivalTime) + "분 후 도착 (" + getHeadingString(item.Tag) + ")\n"
-			if i == 2 {
+			if i == 1 {
 				break
 			}
 		}
@@ -233,11 +245,11 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	stationCard := model.TextCard{
 		Title:       "한대앞역",
 		Description: strings.Trim(stationString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	terminalString := ""
-	terminalString += "캠퍼스 방면\n\n"
+	terminalString += "캠퍼스 방면\n"
 	if len(terminalCampus) == 0 {
 		terminalString += "운행 종료\n"
 	} else {
@@ -251,11 +263,11 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	terminalCard := model.TextCard{
 		Title:       "예술인",
 		Description: strings.Trim(terminalString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	jungangString := ""
-	jungangString += "캠퍼스 방면\n\n"
+	jungangString += "캠퍼스 방면\n"
 	if len(jungangCampus) == 0 {
 		jungangString += "운행 종료\n"
 	} else {
@@ -269,11 +281,11 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	jungangCard := model.TextCard{
 		Title:       "중앙역",
 		Description: strings.Trim(jungangString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	shuttlecockInString := ""
-	shuttlecockInString += "기숙사 방면\n\n"
+	shuttlecockInString += "기숙사 방면\n"
 	if len(shuttlecockIn) == 0 {
 		shuttlecockInString += "운행 종료\n"
 	} else {
@@ -287,7 +299,7 @@ func ShuttleArrival(c *fiber.Ctx) error {
 	shuttlecockInCard := model.TextCard{
 		Title:       "셔틀콕 건너편",
 		Description: strings.Trim(shuttlecockInString, "\n"),
-		Buttons:     make([]model.CardButton, 0),
+		Buttons:     cardButtons,
 	}
 
 	cardList := make([]model.TextCard, 0)
