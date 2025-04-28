@@ -21,8 +21,9 @@ func main() {
 		ctx.Locals("graphQLClient", graphQLClient)
 		return ctx.Next()
 	})
-	// Health Check
+	// Routes
 	app.Post("/healthcheck", router.GetHealthCheckMessage)
+	app.Post("/shuttle", router.GetShuttleMessage)
 	// Listen on 3000
 	err := app.Listen("0.0.0.0:3000", fiber.ListenConfig{
 		EnablePrefork: true,

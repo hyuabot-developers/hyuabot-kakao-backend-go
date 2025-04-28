@@ -61,10 +61,10 @@ type (
 	}
 
 	QuickReply struct {
-		Label       string `json:"label"`
-		Action      string `json:"action"`
-		MessageText string `json:"messageText"`
-		BlockID     string `json:"blockId"`
-		Extra       any    `json:"extra"`
+		Label       string            `json:"label"`
+		Action      string            `json:"action"`
+		MessageText string            `json:"messageText"`
+		BlockID     string            `json:"blockId"`
+		Extra       map[string]string `json:"extra"`
 	}
 )
