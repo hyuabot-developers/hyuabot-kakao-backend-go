@@ -3,22 +3,23 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/hasura/go-graphql-client"
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
-	"os"
 )
 
 func main() {
 	// GraphQL Client
-	client := graphql.NewClient(fmt.Sprintf("https://%s/query", os.Getenv("API_URL")), nil)
+	graphQLClient := graphql.NewClient(fmt.Sprintf("https://%s/query", os.Getenv("API_URL")), nil)
 	app := fiber.New(fiber.Config{
 		AppName: "HYUabot-Kakao-Backend",
 	})
 	app.Use(logger.New())
 	app.Use(func(ctx fiber.Ctx) error {
-		ctx.Locals("graphQLClient", client)
+		ctx.Locals("graphQLClient", graphQLClient)
 		return ctx.Next()
 	})
 	// Health Check
@@ -30,7 +31,12 @@ func main() {
 			})
 		}
 		// GraphQL Client and check API server status
-		client := ctx.Locals("graphQLClient").(*graphql.Client)
+		client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
+		if !loaded {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "GraphQL client not found",
+			})
+		}
 		var query struct {
 			Health bool
 		}

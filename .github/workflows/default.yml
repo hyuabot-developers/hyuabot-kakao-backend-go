@@ -35,4 +35,4 @@ jobs:
           go-version: ">=1.24"
           cache: 'false'
       - name: Build Binary
-        run: go build -o hyuabot-kakao-backend-go ./...
+        run: go build -o main .
