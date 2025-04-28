@@ -11,43 +11,91 @@ import (
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
-func GetShuttleMessage(ctx fiber.Ctx) error {
-	body := new(schema.SkillPayload)
-	if err := ctx.Bind().JSON(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+// Shuttle Stop ID.
+const dormitoryStopID = "dormitory_o"
+const shuttlecockOutStopID = "shuttlecock_o"
+const stationStopID = "station"
+const terminalStopID = "terminal"
+const jungangStationStopID = "jungang_stn"
+const shuttlecockInStopID = "shuttlecock_i"
+
+// Shuttle Destination Group ID.
+const stationDestination = "STATION"
+const terminalDestination = "TERMINAL"
+const jungangStationDestination = "JUNGANG"
+const campusDestination = "CAMPUS"
+
+// Header Text.
+const headingStation = "한대앞\n"
+const headingTerminal = "\n예술인\n"
+const headingJungangStation = "\n중앙역\n"
+const headingCampus = "캠퍼스\n"
+
+// No Arrival Data.
+const noArrivalText = "운행 없음\n"
+
+type ShuttleTimetable struct {
+	Tag         string
+	Route       string
+	Time        string
+	Hour        int
+	Minute      int
+	Stop        string
+	Destination string
+}
+
+func GenerateCardText(stopID string, resultMap map[string]map[string][]ShuttleTimetable) string {
+	// Destination For Each Stop.
+	destinationMap := map[string][]string{
+		dormitoryStopID:      {stationDestination, terminalDestination, jungangStationDestination},
+		shuttlecockOutStopID: {stationDestination, terminalDestination, jungangStationDestination},
+		stationStopID:        {campusDestination, terminalDestination, jungangStationDestination},
+		terminalStopID:       {campusDestination},
+		jungangStationStopID: {campusDestination},
+		shuttlecockInStopID:  {campusDestination},
 	}
+	headerMap := map[string]string{
+		stationDestination:        headingStation,
+		terminalDestination:       headingTerminal,
+		jungangStationDestination: headingJungangStation,
+		campusDestination:         headingCampus,
+	}
+
+	var cardText string
+	for _, destination := range destinationMap[stopID] {
+		cardText += headerMap[destination]
+		result := resultMap[stopID][destination]
+		if result == nil {
+			cardText += noArrivalText
+			continue
+		}
+		for _, timetable := range result {
+			if timetable.Tag == "C" {
+				cardText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
+			} else {
+				cardText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
+			}
+		}
+	}
+	return strings.Trim(cardText, "\n")
+}
+
+func QueryShuttleTimetable(ctx fiber.Ctx) []ShuttleTimetable {
 	// GraphQL Client and check API server status
 	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
 	if !loaded {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "GraphQL client not found",
-		})
+		panic("GraphQL client not found")
 	}
 	// Get current datetime
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		panic(err)
 	}
-	time.Local = location
-	currentTime := time.Now()
+	currentTime := time.Now().In(location)
 	// Query Shuttle Timetable
-	type DateTime time.Time
-	type Time time.Time
 	var query struct {
 		Shuttle struct {
-			GroupedTimetable []struct {
-				Tag         string
-				Route       string
-				Time        string
-				Hour        int
-				Minute      int
-				Stop        string
-				Destination string
-			}
+			GroupedTimetable []ShuttleTimetable
 		} `graphql:"shuttle(count: 2, startStr: $time, timestampStr: $timestamp, group: \"destination\")"`
 	}
 	variables := map[string]interface{}{
@@ -56,181 +104,37 @@ func GetShuttleMessage(ctx fiber.Ctx) error {
 	}
 	queryError := client.Query(context.Background(), &query, variables)
 	if queryError != nil {
-		response := schema.SkillResponse{
-			Version: "2.0",
-			Template: schema.SkillTemplate{
-				Outputs: []schema.Component{
-					schema.SimpleText{Text: queryError.Error()},
-				},
-				QuickReplies: []schema.QuickReply{},
-			},
+		panic(queryError)
+	}
+	return query.Shuttle.GroupedTimetable
+}
+
+func GetShuttleMessage(ctx fiber.Ctx) error {
+	body := new(schema.SkillPayload)
+	if err := ctx.Bind().JSON(body); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	// Group shuttle timetable by stop and destination
+	result := QueryShuttleTimetable(ctx)
+	resultMap := make(map[string]map[string][]ShuttleTimetable)
+	for _, timetable := range result {
+		if resultMap[timetable.Stop] == nil {
+			resultMap[timetable.Stop] = make(map[string][]ShuttleTimetable)
 		}
-		return ctx.JSON(response)
+		resultMap[timetable.Stop][timetable.Destination] = append(
+			resultMap[timetable.Stop][timetable.Destination],
+			timetable,
+		)
 	}
-	// Create dormitory response text
-	var dormitoryText string
-	var count = 0
-	dormitoryText += "한대앞\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "dormitory_o" && timetable.Destination == "STATION" {
-			count += 1
-			if timetable.Tag == "C" {
-				dormitoryText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			} else {
-				dormitoryText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			}
-		}
-	}
-	if count == 0 {
-		dormitoryText += "운행 없음\n"
-	}
-	dormitoryText += "\n예술인\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "dormitory_o" && timetable.Destination == "TERMINAL" {
-			count += 1
-			if timetable.Tag == "C" {
-				dormitoryText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			} else {
-				dormitoryText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			}
-		}
-	}
-	if count == 0 {
-		dormitoryText += "운행 없음\n"
-	}
-	dormitoryText += "\n중앙역\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "dormitory_o" && timetable.Destination == "JUNGANG" {
-			count += 1
-			dormitoryText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		dormitoryText += "운행 없음\n"
-	}
-	// Create shuttlecock out response text
-	var shuttlecockOutText string
-	count = 0
-	shuttlecockOutText += "한대앞\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "shuttlecock_o" && timetable.Destination == "STATION" {
-			count += 1
-			if timetable.Tag == "C" {
-				shuttlecockOutText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			} else {
-				shuttlecockOutText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			}
-		}
-	}
-	if count == 0 {
-		shuttlecockOutText += "운행 없음\n"
-	}
-	shuttlecockOutText += "\n예술인\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "shuttlecock_o" && timetable.Destination == "TERMINAL" {
-			count += 1
-			if timetable.Tag == "C" {
-				shuttlecockOutText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			} else {
-				shuttlecockOutText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			}
-		}
-	}
-	if count == 0 {
-		shuttlecockOutText += "운행 없음\n"
-	}
-	shuttlecockOutText += "\n중앙역\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "shuttlecock_o" && timetable.Destination == "JUNGANG" {
-			count += 1
-			shuttlecockOutText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		shuttlecockOutText += "운행 없음\n"
-	}
-	// Create station response text
-	var stationText string
-	count = 0
-	stationText += "캠퍼스\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "station" && timetable.Destination == "CAMPUS" {
-			count += 1
-			if timetable.Tag == "C" {
-				stationText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			} else {
-				stationText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-			}
-		}
-	}
-	if count == 0 {
-		stationText += "운행 없음\n"
-	}
-	stationText += "\n예술인\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "station" && timetable.Destination == "TERMINAL" {
-			count += 1
-			stationText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		stationText += "운행 없음\n"
-	}
-	stationText += "\n중앙역\n"
-	count = 0
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "station" && timetable.Destination == "JUNGANG" {
-			count += 1
-			stationText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		stationText += "운행 없음\n"
-	}
-	// Create terminal response text
-	var terminalText string
-	count = 0
-	terminalText += "캠퍼스\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "terminal" {
-			count += 1
-			terminalText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		terminalText += "운행 없음\n"
-	}
-	// Create jungang station response text
-	var jungangStationText string
-	count = 0
-	jungangStationText += "캠퍼스\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "jungang_stn" {
-			count += 1
-			jungangStationText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		jungangStationText += "운행 없음\n"
-	}
-	// Create shuttlecock in response text
-	var shuttlecockInText string
-	count = 0
-	shuttlecockInText += "기숙사\n"
-	for _, timetable := range query.Shuttle.GroupedTimetable {
-		if timetable.Stop == "shuttlecock_i" {
-			count += 1
-			shuttlecockInText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
-		}
-	}
-	if count == 0 {
-		shuttlecockInText += "운행 없음\n"
-	}
+	// Create response text
+	dormitoryText := GenerateCardText(dormitoryStopID, resultMap)
+	shuttlecockOutText := GenerateCardText(shuttlecockOutStopID, resultMap)
+	stationText := GenerateCardText(stationStopID, resultMap)
+	terminalText := GenerateCardText(terminalStopID, resultMap)
+	jungangStationText := GenerateCardText(jungangStationStopID, resultMap)
+	shuttlecockInText := GenerateCardText(shuttlecockInStopID, resultMap)
 	response := schema.SkillResponse{
 		Version: "2.0",
 		Template: schema.SkillTemplate{
