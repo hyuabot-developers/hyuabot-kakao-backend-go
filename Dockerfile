@@ -4,7 +4,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 # Install TZdata
-RUN apk add --no-cache tzdata**
+RUN apk add --no-cache tzdata
 # Copy the source code
 COPY . .
 RUN go build -o main .
