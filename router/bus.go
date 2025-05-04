@@ -51,6 +51,8 @@ type MergedBusRealtime struct {
 	Seat int
 }
 
+const arrivalSectionLength = 3
+
 func QueryBusDepartureData(ctx fiber.Ctx) []BusStop {
 	// GraphQL Client and check API server status
 	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
@@ -79,7 +81,7 @@ func QueryBusDepartureData(ctx fiber.Ctx) []BusStop {
 
 func GenerateBusSectionText(header string, result BusRoute) string {
 	cardText := ""
-	cardText += fmt.Sprintf("%s", header)
+	cardText += header
 	for _, realtime := range result.Realtime {
 		if realtime.Seat >= 0 {
 			cardText += fmt.Sprintf("%d분 후 도착(%d석)\n", int(realtime.Time), realtime.Seat)
@@ -87,9 +89,9 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 			cardText += fmt.Sprintf("%d분 후 도착\n", int(realtime.Time))
 		}
 	}
-	if len(result.Realtime) < 3 {
+	if len(result.Realtime) < arrivalSectionLength {
 		for index, timetable := range result.Timetable {
-			if index < 3-len(result.Realtime) {
+			if index < arrivalSectionLength-len(result.Realtime) {
 				cardText += fmt.Sprintf("%s 출발\n", strings.TrimSuffix(timetable.Time, ":00"))
 			}
 		}
@@ -102,9 +104,12 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 
 func GenerateMergedBusSectionText(header string, result []MergedBusRealtime) string {
 	cardText := ""
-	cardText += fmt.Sprintf("%s", header)
-	for _, timetable := range result {
+	cardText += header
+	for index, timetable := range result {
 		cardText += fmt.Sprintf("%s %d분 후 도착(%d석)\n", timetable.Name, timetable.Time, timetable.Seat)
+		if index == arrivalSectionLength-1 {
+			break
+		}
 	}
 	return cardText
 }
