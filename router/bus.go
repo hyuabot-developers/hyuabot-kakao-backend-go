@@ -92,7 +92,10 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 	if len(result.Realtime) < arrivalSectionLength {
 		for index, timetable := range result.Timetable {
 			if index < arrivalSectionLength-len(result.Realtime) {
-				cardText += fmt.Sprintf("%s분 시점 출발\n", strings.Replace(strings.TrimSuffix(timetable.Time, ":00"), ":", "시 ", 1))
+				cardText += fmt.Sprintf(
+					"%s분 시점 출발\n",
+					strings.Replace(strings.TrimSuffix(timetable.Time, ":00"), ":", "시 ", 1),
+				)
 			}
 		}
 	}
