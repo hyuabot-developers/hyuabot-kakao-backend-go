@@ -11,6 +11,9 @@ import (
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
+const lunchStartHour = 9
+const lunchEndHour = 17
+
 type Cafeteria struct {
 	ID   int
 	Menu []Menu
@@ -21,7 +24,7 @@ type Menu struct {
 	Price string
 }
 
-func QueryCafeteriaDepartureData(ctx fiber.Ctx, date string, type_ string) []Cafeteria {
+func QueryCafeteriaDepartureData(ctx fiber.Ctx, date string, feedType string) []Cafeteria {
 	// GraphQL Client and check API server status
 	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
 	if !loaded {
@@ -33,7 +36,7 @@ func QueryCafeteriaDepartureData(ctx fiber.Ctx, date string, type_ string) []Caf
 	}
 	variables := map[string]interface{}{
 		"dateStr": date,
-		"type_":   type_,
+		"type_":   feedType,
 	}
 	queryError := client.Query(context.Background(), &query, variables)
 	if queryError != nil {
@@ -64,14 +67,14 @@ func GetCafeteriaMessage(ctx fiber.Ctx) error {
 	}
 	currentTime := time.Now().In(location)
 	// Set food type
-	type_ := "중식"
-	if currentTime.Hour() >= 17 {
-		type_ = "석식"
-	} else if currentTime.Hour() < 9 {
-		type_ = "조식"
+	feedType := "중식"
+	if currentTime.Hour() >= lunchEndHour {
+		feedType = "석식"
+	} else if currentTime.Hour() < lunchStartHour {
+		feedType = "조식"
 	}
 	// Group shuttle timetable by stop and destination
-	result := QueryCafeteriaDepartureData(ctx, time.Now().Format("2006-01-02"), type_)
+	result := QueryCafeteriaDepartureData(ctx, time.Now().Format("2006-01-02"), feedType)
 	resultMap := make(map[int]Cafeteria)
 	for _, cafeteria := range result {
 		resultMap[cafeteria.ID] = cafeteria
@@ -89,27 +92,27 @@ func GetCafeteriaMessage(ctx fiber.Ctx) error {
 					Type: "textCard",
 					Items: []schema.Component{
 						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "교직원식당", type_),
+							Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
 							Description: strings.Trim(staffCafeteriaText, "\n"),
 							Buttons:     []schema.CardButton{},
 						},
 						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "학생식당", type_),
+							Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
 							Description: strings.Trim(studentCafeteriaText, "\n"),
 							Buttons:     []schema.CardButton{},
 						},
 						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", type_),
+							Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
 							Description: strings.Trim(dormitoryCafeteriaText, "\n"),
 							Buttons:     []schema.CardButton{},
 						},
 						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "푸드코트", type_),
+							Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
 							Description: strings.Trim(foodCourtCafeteriaText, "\n"),
 							Buttons:     []schema.CardButton{},
 						},
 						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "창업보육센터", type_),
+							Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
 							Description: strings.Trim(businessCafeteriaText, "\n"),
 							Buttons:     []schema.CardButton{},
 						},
