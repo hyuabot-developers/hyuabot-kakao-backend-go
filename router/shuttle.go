@@ -71,9 +71,9 @@ func GenerateCardText(stopID string, resultMap map[string]map[string][]ShuttleTi
 		}
 		for _, timetable := range result {
 			if timetable.Tag == "C" {
-				cardText += fmt.Sprintf("순환 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
+				cardText += fmt.Sprintf("순환 %02d시 %02d분 출발\n", timetable.Hour, timetable.Minute)
 			} else {
-				cardText += fmt.Sprintf("직행 %02d:%02d 출발\n", timetable.Hour, timetable.Minute)
+				cardText += fmt.Sprintf("직행 %02d시 %02d분 출발\n", timetable.Hour, timetable.Minute)
 			}
 		}
 	}
