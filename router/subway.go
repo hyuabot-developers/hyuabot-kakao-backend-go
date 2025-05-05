@@ -68,42 +68,33 @@ func QuerySubwayDepartureData(ctx fiber.Ctx) []SubwayStation {
 	return query.Subway
 }
 
+func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []SubwayTimetableItem) string {
+	cardText := ""
+	for index, realtime := range realtime {
+		cardText += fmt.Sprintf("%s행 %d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
+		if index == arrivalSectionLength-1 {
+			break
+		}
+	}
+	if len(realtime) < arrivalSectionLength {
+		for index, timetable := range timetable {
+			if index < arrivalSectionLength-len(realtime) {
+				cardText += fmt.Sprintf("%s 출발\n", timetable.Time)
+			}
+		}
+	}
+	if len(realtime) == 0 && len(timetable) == 0 {
+		cardText += noArrivalText
+	}
+	return cardText
+}
+
 func GenerateSubwayText(upHeaderText string, downHeaderText string, station SubwayStation) string {
 	cardText := ""
 	cardText += upHeaderText
-	for index, realtime := range station.Realtime.Up {
-		cardText += fmt.Sprintf("%s행 %d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
-		if index == arrivalSectionLength-1 {
-			break
-		}
-	}
-	if len(station.Realtime.Up) < arrivalSectionLength {
-		for index, timetable := range station.Timetable.Up {
-			if index < arrivalSectionLength-len(station.Realtime.Up) {
-				cardText += fmt.Sprintf("%s 출발\n", timetable.Time)
-			}
-		}
-	}
-	if len(station.Realtime.Up) == 0 && len(station.Timetable.Down) == 0 {
-		cardText += noArrivalText
-	}
+	cardText += GenerateSubwaySectionText(station.Realtime.Up, station.Timetable.Up)
 	cardText += downHeaderText
-	for index, realtime := range station.Realtime.Down {
-		cardText += fmt.Sprintf("%s행 %d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
-		if index == arrivalSectionLength-1 {
-			break
-		}
-	}
-	if len(station.Realtime.Down) < arrivalSectionLength {
-		for index, timetable := range station.Timetable.Down {
-			if index < arrivalSectionLength-len(station.Realtime.Down) {
-				cardText += fmt.Sprintf("%s 출발\n", timetable.Time)
-			}
-		}
-	}
-	if len(station.Realtime.Down) == 0 && len(station.Timetable.Down) == 0 {
-		cardText += noArrivalText
-	}
+	cardText += GenerateSubwaySectionText(station.Realtime.Down, station.Timetable.Down)
 	return cardText
 }
 
