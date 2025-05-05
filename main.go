@@ -25,6 +25,7 @@ func main() {
 	app.Post("/healthcheck", router.GetHealthCheckMessage)
 	app.Post("/shuttle", router.GetShuttleMessage)
 	app.Post("/bus", router.GetBusMessage)
+	app.Post("/cafeteria", router.GetCafeteriaMessage)
 	// Listen on 3000
 	err := app.Listen("0.0.0.0:3000", fiber.ListenConfig{
 		EnablePrefork: true,
