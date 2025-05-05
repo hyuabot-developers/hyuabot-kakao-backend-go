@@ -97,7 +97,7 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 		}
 	}
 	if len(result.Realtime) == 0 && len(result.Timetable) == 0 {
-		cardText += "운행 정보 없음\n"
+		cardText += noArrivalText
 	}
 	return cardText
 }
