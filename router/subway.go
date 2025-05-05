@@ -71,7 +71,7 @@ func QuerySubwayDepartureData(ctx fiber.Ctx) []SubwayStation {
 func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []SubwayTimetableItem) string {
 	cardText := ""
 	for index, realtime := range realtime {
-		cardText += fmt.Sprintf("%s행 %d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
+		cardText += fmt.Sprintf("%s행 %2d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
 		if index == arrivalSectionLength-1 {
 			break
 		}
@@ -79,7 +79,11 @@ func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []Subway
 	if len(realtime) < arrivalSectionLength {
 		for index, timetable := range timetable {
 			if index < arrivalSectionLength-len(realtime) {
-				cardText += fmt.Sprintf("%s 출발\n", timetable.Time)
+				cardText += fmt.Sprintf(
+					"%s행 %s분 출발\n",
+					timetable.Terminal.Name,
+					strings.Replace(timetable.Time[:5], ":", "시 ", 1),
+				)
 			}
 		}
 	}
@@ -118,17 +122,19 @@ func GetSubwayMessage(ctx fiber.Ctx) error {
 		Template: schema.SkillTemplate{
 			Outputs: []schema.Component{
 				schema.Carousel{
-					Type: "textCard",
-					Items: []schema.Component{
-						schema.TextCard{
-							Title:       "4호선",
-							Description: strings.Trim(line4Text, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       "수인분당선",
-							Description: strings.Trim(lineSuinText, "\n"),
-							Buttons:     []schema.CardButton{},
+					Content: schema.CarouselContent{
+						Type: "textCard",
+						Items: []schema.Content{
+							schema.TextCardContent{
+								Title:       "4호선",
+								Description: strings.Trim(line4Text, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
+							schema.TextCardContent{
+								Title:       "수인분당선",
+								Description: strings.Trim(lineSuinText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
 						},
 					},
 				},

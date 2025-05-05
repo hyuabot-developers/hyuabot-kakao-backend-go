@@ -50,6 +50,9 @@ func GenerateCafeteriaText(cafeteria Cafeteria) string {
 	for _, menu := range cafeteria.Menu {
 		cardText += fmt.Sprintf("%s\n%s\n", strings.TrimSpace(menu.Menu), menu.Price)
 	}
+	if len(cardText) == 0 {
+		cardText += "식단 정보가 없습니다\n"
+	}
 	return cardText
 }
 
@@ -89,32 +92,34 @@ func GetCafeteriaMessage(ctx fiber.Ctx) error {
 		Template: schema.SkillTemplate{
 			Outputs: []schema.Component{
 				schema.Carousel{
-					Type: "textCard",
-					Items: []schema.Component{
-						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
-							Description: strings.Trim(staffCafeteriaText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
-							Description: strings.Trim(studentCafeteriaText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
-							Description: strings.Trim(dormitoryCafeteriaText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
-							Description: strings.Trim(foodCourtCafeteriaText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
-							Description: strings.Trim(businessCafeteriaText, "\n"),
-							Buttons:     []schema.CardButton{},
+					Content: schema.CarouselContent{
+						Type: "textCard",
+						Items: []schema.Content{
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
+								Description: strings.Trim(staffCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
+								Description: strings.Trim(studentCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
+								Description: strings.Trim(dormitoryCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
+								Description: strings.Trim(foodCourtCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
+								Description: strings.Trim(businessCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
+							},
 						},
 					},
 				},

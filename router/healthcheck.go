@@ -31,7 +31,11 @@ func GetHealthCheckMessage(ctx fiber.Ctx) error {
 			Version: "2.0",
 			Template: schema.SkillTemplate{
 				Outputs: []schema.Component{
-					schema.SimpleText{Text: "API 서버 비정상"},
+					schema.SimpleText{
+						Content: schema.SimpleTextContent{
+							Text: "API 서버 비정상",
+						},
+					},
 				},
 				QuickReplies: []schema.QuickReply{},
 			},
@@ -42,7 +46,11 @@ func GetHealthCheckMessage(ctx fiber.Ctx) error {
 		Version: "2.0",
 		Template: schema.SkillTemplate{
 			Outputs: []schema.Component{
-				schema.SimpleText{Text: "API 서버 정상"},
+				schema.SimpleText{
+					Content: schema.SimpleTextContent{
+						Text: "API 서버 정상",
+					},
+				},
 			},
 			QuickReplies: []schema.QuickReply{},
 		},

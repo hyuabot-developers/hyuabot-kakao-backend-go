@@ -13,27 +13,48 @@ type (
 
 	Component interface {
 	}
+	Content interface{}
 
 	SimpleText struct {
-		Component Component `json:"component,omitempty"`
-		Text      string    `json:"text"`
+		Component Component         `json:"component,omitempty"`
+		Content   SimpleTextContent `json:"simpleText"`
+	}
+
+	SimpleTextContent struct {
+		Content Content `json:"content,omitempty"`
+		Text    string  `json:"text"`
 	}
 
 	SimpleImage struct {
-		Component Component `json:"component,omitempty"`
-		ImageURL  string    `json:"imageUrl"`
-		AltText   string    `json:"altText"`
+		Component Component          `json:"component,omitempty"`
+		Content   SimpleImageContent `json:"simpleImage"`
+	}
+
+	SimpleImageContent struct {
+		Content  Content `json:"content,omitempty"`
+		ImageURL string  `json:"imageUrl"`
+		AltText  string  `json:"altText"`
 	}
 
 	TextCard struct {
-		Component   Component    `json:"component,omitempty"`
+		Component Component       `json:"component,omitempty"`
+		Content   TextCardContent `json:"textCard"`
+	}
+
+	TextCardContent struct {
+		Content     Content      `json:"content,omitempty"`
 		Title       string       `json:"title"`
 		Description string       `json:"description"`
 		Buttons     []CardButton `json:"buttons"`
 	}
 
 	BasicCard struct {
-		Component   Component          `json:"component,omitempty"`
+		Component Component        `json:"component,omitempty"`
+		Content   BasicCardContent `json:"basicCard"`
+	}
+
+	BasicCardContent struct {
+		Content     Content            `json:"content,omitempty"`
 		Title       string             `json:"title"`
 		Description string             `json:"description"`
 		Thumbnail   BasicCardThumbnail `json:"thumbnail"`
@@ -55,9 +76,13 @@ type (
 	}
 
 	Carousel struct {
-		Component Component   `json:"component,omitempty"`
-		Type      string      `json:"type"`
-		Items     []Component `json:"items"`
+		Component Component       `json:"component,omitempty"`
+		Content   CarouselContent `json:"carousel"`
+	}
+
+	CarouselContent struct {
+		Type  string    `json:"type"`
+		Items []Content `json:"items"`
 	}
 
 	QuickReply struct {
