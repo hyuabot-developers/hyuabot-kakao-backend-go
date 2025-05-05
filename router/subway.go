@@ -85,7 +85,7 @@ func GenerateSubwayText(upHeaderText string, downHeaderText string, station Subw
 		}
 	}
 	if len(station.Realtime.Up) == 0 && len(station.Timetable.Down) == 0 {
-		cardText += "운행 정보 없음\n"
+		cardText += noArrivalText
 	}
 	cardText += downHeaderText
 	for index, realtime := range station.Realtime.Down {
@@ -102,7 +102,7 @@ func GenerateSubwayText(upHeaderText string, downHeaderText string, station Subw
 		}
 	}
 	if len(station.Realtime.Down) == 0 && len(station.Timetable.Down) == 0 {
-		cardText += "운행 정보 없음\n"
+		cardText += noArrivalText
 	}
 	return cardText
 }
