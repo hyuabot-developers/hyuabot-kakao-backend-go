@@ -50,6 +50,9 @@ func GenerateCafeteriaText(cafeteria Cafeteria) string {
 	for _, menu := range cafeteria.Menu {
 		cardText += fmt.Sprintf("%s\n%s\n", strings.TrimSpace(menu.Menu), menu.Price)
 	}
+	if len(cardText) == 0 {
+		cardText += "식단 정보가 없습니다\n"
+	}
 	return cardText
 }
 
