@@ -142,48 +142,36 @@ func GetShuttleMessage(ctx fiber.Ctx) error {
 				schema.Carousel{
 					Content: schema.CarouselContent{
 						Type: "textCard",
-						Items: []schema.Component{
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "기숙사",
-									Description: strings.Trim(dormitoryText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+						Items: []schema.Content{
+							schema.TextCardContent{
+								Title:       "기숙사",
+								Description: strings.Trim(dormitoryText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "셔틀콕",
-									Description: strings.Trim(shuttlecockOutText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "셔틀콕",
+								Description: strings.Trim(shuttlecockOutText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "한대앞",
-									Description: strings.Trim(stationText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "한대앞",
+								Description: strings.Trim(stationText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "예술인",
-									Description: strings.Trim(terminalText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "예술인",
+								Description: strings.Trim(terminalText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "중앙역",
-									Description: strings.Trim(jungangStationText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "중앙역",
+								Description: strings.Trim(jungangStationText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "셔틀콕 건너편",
-									Description: strings.Trim(shuttlecockInText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "셔틀콕 건너편",
+								Description: strings.Trim(shuttlecockInText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
 						},
 					},

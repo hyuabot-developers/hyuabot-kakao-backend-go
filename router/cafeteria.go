@@ -91,41 +91,31 @@ func GetCafeteriaMessage(ctx fiber.Ctx) error {
 				schema.Carousel{
 					Content: schema.CarouselContent{
 						Type: "textCard",
-						Items: []schema.Component{
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
-									Description: strings.Trim(staffCafeteriaText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+						Items: []schema.Content{
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
+								Description: strings.Trim(staffCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
-									Description: strings.Trim(studentCafeteriaText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
+								Description: strings.Trim(studentCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
-									Description: strings.Trim(dormitoryCafeteriaText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
+								Description: strings.Trim(dormitoryCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
-									Description: strings.Trim(foodCourtCafeteriaText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
+								Description: strings.Trim(foodCourtCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
-									Description: strings.Trim(businessCafeteriaText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
+								Description: strings.Trim(businessCafeteriaText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
 						},
 					},

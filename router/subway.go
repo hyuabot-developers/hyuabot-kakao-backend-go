@@ -120,20 +120,16 @@ func GetSubwayMessage(ctx fiber.Ctx) error {
 				schema.Carousel{
 					Content: schema.CarouselContent{
 						Type: "textCard",
-						Items: []schema.Component{
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "4호선",
-									Description: strings.Trim(line4Text, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+						Items: []schema.Content{
+							schema.TextCardContent{
+								Title:       "4호선",
+								Description: strings.Trim(line4Text, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
-							schema.TextCard{
-								Content: schema.TextCardContent{
-									Title:       "수인분당선",
-									Description: strings.Trim(lineSuinText, "\n"),
-									Buttons:     []schema.CardButton{},
-								},
+							schema.TextCardContent{
+								Title:       "수인분당선",
+								Description: strings.Trim(lineSuinText, "\n"),
+								Buttons:     []schema.CardButton{},
 							},
 						},
 					},

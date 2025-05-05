@@ -13,6 +13,7 @@ type (
 
 	Component interface {
 	}
+	Content interface{}
 
 	SimpleText struct {
 		Component Component         `json:"component,omitempty"`
@@ -20,7 +21,8 @@ type (
 	}
 
 	SimpleTextContent struct {
-		Text string `json:"text"`
+		Content Content `json:"content,omitempty"`
+		Text    string  `json:"text"`
 	}
 
 	SimpleImage struct {
@@ -29,8 +31,9 @@ type (
 	}
 
 	SimpleImageContent struct {
-		ImageURL string `json:"imageUrl"`
-		AltText  string `json:"altText"`
+		Content  Content `json:"content,omitempty"`
+		ImageURL string  `json:"imageUrl"`
+		AltText  string  `json:"altText"`
 	}
 
 	TextCard struct {
@@ -39,6 +42,7 @@ type (
 	}
 
 	TextCardContent struct {
+		Content     Content      `json:"content,omitempty"`
 		Title       string       `json:"title"`
 		Description string       `json:"description"`
 		Buttons     []CardButton `json:"buttons"`
@@ -50,6 +54,7 @@ type (
 	}
 
 	BasicCardContent struct {
+		Content     Content            `json:"content,omitempty"`
 		Title       string             `json:"title"`
 		Description string             `json:"description"`
 		Thumbnail   BasicCardThumbnail `json:"thumbnail"`
@@ -76,8 +81,8 @@ type (
 	}
 
 	CarouselContent struct {
-		Type  string      `json:"type"`
-		Items []Component `json:"items"`
+		Type  string    `json:"type"`
+		Items []Content `json:"items"`
 	}
 
 	QuickReply struct {
