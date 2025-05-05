@@ -15,8 +15,8 @@ type (
 	}
 
 	SimpleText struct {
-		Component Component `json:"component,omitempty"`
-		Content   string    `json:"simpleText"`
+		Component Component         `json:"component,omitempty"`
+		Content   SimpleTextContent `json:"simpleText"`
 	}
 
 	SimpleTextContent struct {
