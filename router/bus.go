@@ -83,16 +83,16 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 	cardText := ""
 	cardText += header
 	for _, realtime := range result.Realtime {
-		if realtime.Seat >= 0 {
-			cardText += fmt.Sprintf("%d분 후 도착(%d석)\n", int(realtime.Time), realtime.Seat)
+		if realtime.Seat < 0 {
+			cardText += fmt.Sprintf("%d분 후 도착(%d전)\n", int(realtime.Time), realtime.Stop)
 		} else {
-			cardText += fmt.Sprintf("%d분 후 도착\n", int(realtime.Time))
+			cardText += fmt.Sprintf("%d분 후 도착(%d전,%d석)\n", int(realtime.Time), realtime.Stop, realtime.Seat)
 		}
 	}
 	if len(result.Realtime) < arrivalSectionLength {
 		for index, timetable := range result.Timetable {
 			if index < arrivalSectionLength-len(result.Realtime) {
-				cardText += fmt.Sprintf("%s 출발\n", strings.TrimSuffix(timetable.Time, ":00"))
+				cardText += fmt.Sprintf("%s분 시점 출발\n", strings.Replace(strings.TrimSuffix(timetable.Time, ":00"), ":", "시 ", 1))
 			}
 		}
 	}
@@ -105,8 +105,8 @@ func GenerateBusSectionText(header string, result BusRoute) string {
 func GenerateMergedBusSectionText(header string, result []MergedBusRealtime) string {
 	cardText := ""
 	cardText += header
-	for index, timetable := range result {
-		cardText += fmt.Sprintf("%s %d분 후 도착(%d석)\n", timetable.Name, timetable.Time, timetable.Seat)
+	for index, realtime := range result {
+		cardText += fmt.Sprintf("%-4s %3d분 후 도착(%d전,%d석)\n", realtime.Name, realtime.Time, realtime.Stop, realtime.Seat)
 		if index == arrivalSectionLength-1 {
 			break
 		}
@@ -116,7 +116,7 @@ func GenerateMergedBusSectionText(header string, result []MergedBusRealtime) str
 
 func GetSangnoksuStationText(result map[int]map[int]BusRoute) string {
 	campus := result[216000379][216000068]
-	sangnoksu := result[216000138][216000069]
+	sangnoksu := result[216000138][216000068]
 	cardText := ""
 	cardText += GenerateBusSectionText("10-1 (ERICA)\n", campus)
 	cardText += GenerateBusSectionText("\n10-1 (상록수역)\n", sangnoksu)
@@ -124,7 +124,7 @@ func GetSangnoksuStationText(result map[int]map[int]BusRoute) string {
 }
 
 func GetGangnamStationText(result map[int]map[int]BusRoute) string {
-	bus3102 := result[216000381][216000068]
+	bus3102 := result[216000379][216000061]
 	bus3100N := result[216000719][216000096]
 	cardText := ""
 	cardText += GenerateBusSectionText("3102 (ERICA)\n", bus3102)
