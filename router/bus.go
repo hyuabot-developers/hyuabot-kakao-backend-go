@@ -216,32 +216,44 @@ func GetBusMessage(ctx fiber.Ctx) error {
 		Template: schema.SkillTemplate{
 			Outputs: []schema.Component{
 				schema.Carousel{
-					Type: "textCard",
-					Items: []schema.Component{
-						schema.TextCard{
-							Title:       "상록수역",
-							Description: strings.Trim(sangnoksuText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       "강남역",
-							Description: strings.Trim(gangnamText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       "수원역",
-							Description: strings.Trim(suwonText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       "군포/의왕",
-							Description: strings.Trim(gunpoText, "\n"),
-							Buttons:     []schema.CardButton{},
-						},
-						schema.TextCard{
-							Title:       "광명역",
-							Description: strings.Trim(gwangMyeongText, "\n"),
-							Buttons:     []schema.CardButton{},
+					Content: schema.CarouselContent{
+						Type: "textCard",
+						Items: []schema.Component{
+							schema.TextCard{
+								Content: schema.TextCardContent{
+									Title:       "상록수역",
+									Description: strings.Trim(sangnoksuText, "\n"),
+									Buttons:     []schema.CardButton{},
+								},
+							},
+							schema.TextCard{
+								Content: schema.TextCardContent{
+									Title:       "강남역",
+									Description: strings.Trim(gangnamText, "\n"),
+									Buttons:     []schema.CardButton{},
+								},
+							},
+							schema.TextCard{
+								Content: schema.TextCardContent{
+									Title:       "수원역",
+									Description: strings.Trim(suwonText, "\n"),
+									Buttons:     []schema.CardButton{},
+								},
+							},
+							schema.TextCard{
+								Content: schema.TextCardContent{
+									Title:       "군포/의왕",
+									Description: strings.Trim(gunpoText, "\n"),
+									Buttons:     []schema.CardButton{},
+								},
+							},
+							schema.TextCard{
+								Content: schema.TextCardContent{
+									Title:       "광명역",
+									Description: strings.Trim(gwangMyeongText, "\n"),
+									Buttons:     []schema.CardButton{},
+								},
+							},
 						},
 					},
 				},
