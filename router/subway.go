@@ -71,7 +71,7 @@ func QuerySubwayDepartureData(ctx fiber.Ctx) []SubwayStation {
 func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []SubwayTimetableItem) string {
 	cardText := ""
 	for index, realtime := range realtime {
-		cardText += fmt.Sprintf("%s행 %d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
+		cardText += fmt.Sprintf("%s행 %2d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
 		if index == arrivalSectionLength-1 {
 			break
 		}
@@ -79,7 +79,7 @@ func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []Subway
 	if len(realtime) < arrivalSectionLength {
 		for index, timetable := range timetable {
 			if index < arrivalSectionLength-len(realtime) {
-				cardText += fmt.Sprintf("%s 출발\n", timetable.Time)
+				cardText += fmt.Sprintf("%s분 출발\n", strings.Replace(timetable.Time[:5], ":", "시 ", 1))
 			}
 		}
 	}
