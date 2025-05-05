@@ -16,24 +16,40 @@ type (
 
 	SimpleText struct {
 		Component Component `json:"component,omitempty"`
-		Text      string    `json:"text"`
+		Content   string    `json:"simpleText"`
+	}
+
+	SimpleTextContent struct {
+		Text string `json:"text"`
 	}
 
 	SimpleImage struct {
-		Component Component `json:"component,omitempty"`
-		ImageURL  string    `json:"imageUrl"`
-		AltText   string    `json:"altText"`
+		Component Component          `json:"component,omitempty"`
+		Content   SimpleImageContent `json:"simpleImage"`
+	}
+
+	SimpleImageContent struct {
+		ImageURL string `json:"imageUrl"`
+		AltText  string `json:"altText"`
 	}
 
 	TextCard struct {
-		Component   Component    `json:"component,omitempty"`
+		Component Component       `json:"component,omitempty"`
+		Content   TextCardContent `json:"textCard"`
+	}
+
+	TextCardContent struct {
 		Title       string       `json:"title"`
 		Description string       `json:"description"`
 		Buttons     []CardButton `json:"buttons"`
 	}
 
 	BasicCard struct {
-		Component   Component          `json:"component,omitempty"`
+		Component Component        `json:"component,omitempty"`
+		Content   BasicCardContent `json:"basicCard"`
+	}
+
+	BasicCardContent struct {
 		Title       string             `json:"title"`
 		Description string             `json:"description"`
 		Thumbnail   BasicCardThumbnail `json:"thumbnail"`
@@ -55,9 +71,13 @@ type (
 	}
 
 	Carousel struct {
-		Component Component   `json:"component,omitempty"`
-		Type      string      `json:"type"`
-		Items     []Component `json:"items"`
+		Component Component       `json:"component,omitempty"`
+		Content   CarouselContent `json:"carousel"`
+	}
+
+	CarouselContent struct {
+		Type  string      `json:"type"`
+		Items []Component `json:"items"`
 	}
 
 	QuickReply struct {
