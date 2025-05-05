@@ -28,8 +28,8 @@ func main() {
 	app.Post("/cafeteria", router.GetCafeteriaMessage)
 	app.Post("/subway", router.GetSubwayMessage)
 	// Listen on 3000
-	err := app.Listen("0.0.0.0:3000", fiber.ListenConfig{
-		EnablePrefork: true,
+	err := app.Listen("0.0.0.0:38001", fiber.ListenConfig{
+		EnablePrefork: false,
 	})
 	if err != nil {
 		panic(err)
