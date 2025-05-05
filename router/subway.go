@@ -79,7 +79,7 @@ func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []Subway
 	if len(realtime) < arrivalSectionLength {
 		for index, timetable := range timetable {
 			if index < arrivalSectionLength-len(realtime) {
-				cardText += fmt.Sprintf("%s분 출발\n", strings.Replace(timetable.Time[:5], ":", "시 ", 1))
+				cardText += fmt.Sprintf("%s행 %s분 출발\n", timetable.Terminal.Name, strings.Replace(timetable.Time[:5], ":", "시 ", 1))
 			}
 		}
 	}
