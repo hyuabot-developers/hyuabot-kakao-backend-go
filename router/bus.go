@@ -1,266 +1,230 @@
 package router
 
 import (
-	"context"
 	"fmt"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/hasura/go-graphql-client"
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
-type BusStop struct {
-	ID        int
-	Name      string
-	Latitude  float64
-	Longitude float64
-	Routes    []BusRoute
+const busQuery = `
+query KakaoBus {
+  bus(input: [
+    {route: 216000068, stop: 216000379, limit: 3},
+    {route: 216000068, stop: 216000138, limit: 3},
+    {route: 216000061, stop: 216000379, limit: 3},
+    {route: 216000096, stop: 216000719, limit: 3},
+    {route: 216000104, stop: 216000070, limit: 3},
+    {route: 200000015, stop: 216000070, limit: 3},
+    {route: 216000026, stop: 216000719, limit: 3},
+    {route: 216000043, stop: 216000719, limit: 3},
+    {route: 216000075, stop: 216000759, limit: 3}
+  ]) {
+    route { seq name }
+    stop { seq name }
+    arrival {
+      stops
+      seats
+      minutes
+      lowFloor
+      isRealtime
+      time
+      arrivalTime
+    }
+  }
+}`
+
+const (
+	route10Dash1 = 216000068
+	route3102    = 216000061
+	route3100N   = 216000096
+	route7070    = 216000104
+	route9090    = 200000015
+	route3100    = 216000026
+	route3101    = 216000043
+	route50      = 216000075
+
+	stopERICA             = 216000379
+	stopSangnoksu         = 216000138
+	stopMainGate          = 216000719
+	stopHanyangUniversity = 216000070
+	stopSeongpo           = 216000759
+
+	maxBusArrivalPreview = 2
+	busArrivalPartCount  = 4
+)
+
+type busResult struct {
+	Bus []busRouteStop `json:"bus"`
 }
 
-type BusRoute struct {
-	Info      BusRouteInfo
-	Timetable []BusTimetable
-	Realtime  []BusRealtime
+type busRouteStop struct {
+	Route   busRoute     `json:"route"`
+	Stop    busStop      `json:"stop"`
+	Arrival []busArrival `json:"arrival"`
 }
 
-type BusRouteInfo struct {
-	ID   int
-	Name string
+type busRoute struct {
+	Seq  int    `json:"seq"`
+	Name string `json:"name"`
 }
 
-type BusTimetable struct {
-	Weekdays string
-	Time     string
+type busStop struct {
+	Seq  int    `json:"seq"`
+	Name string `json:"name"`
 }
 
-type BusRealtime struct {
-	Sequence int
-	Stop     int
-	Time     float64
-	Seat     int
-	LowFloor bool
+type busArrival struct {
+	Stops       *int   `json:"stops"`
+	Seats       *int   `json:"seats"`
+	Minutes     *int   `json:"minutes"`
+	LowFloor    *bool  `json:"lowFloor"`
+	IsRealtime  bool   `json:"isRealtime"`
+	Time        string `json:"time"`
+	ArrivalTime string `json:"arrivalTime"`
 }
 
-type MergedBusRealtime struct {
-	Name string
-	Stop int
-	Time int
-	Seat int
+type busKey struct {
+	Route int
+	Stop  int
 }
 
-const arrivalSectionLength = 3
-
-func QueryBusDepartureData(ctx fiber.Ctx) []BusStop {
-	// GraphQL Client and check API server status
-	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
-	if !loaded {
-		panic("GraphQL client not found")
-	}
-	// Get current datetime
-	location, err := time.LoadLocation("Asia/Seoul")
-	if err != nil {
-		panic(err)
-	}
-	currentTime := time.Now().In(location)
-	// Query Shuttle Timetable
-	var query struct {
-		Bus []BusStop `graphql:"bus(id_: [216000138, 216000759, 216000381, 216000117, 216000379, 216000383, 216000070, 216000719, 213000487], startStr: $time)"`
-	}
-	variables := map[string]interface{}{
-		"time": currentTime.Format("15:04:03"),
-	}
-	queryError := client.Query(context.Background(), &query, variables)
-	if queryError != nil {
-		panic(queryError)
-	}
-	return query.Bus
+type busCardSpec struct {
+	Title  string
+	Routes []busRouteSpec
 }
 
-func GenerateBusSectionText(header string, result BusRoute) string {
-	cardText := ""
-	cardText += header
-	for _, realtime := range result.Realtime {
-		if realtime.Seat < 0 {
-			cardText += fmt.Sprintf("%d분 후 도착(%d전)\n", int(realtime.Time), realtime.Stop)
-		} else {
-			cardText += fmt.Sprintf("%d분 후 도착(%d전,%d석)\n", int(realtime.Time), realtime.Stop, realtime.Seat)
-		}
-	}
-	if len(result.Realtime) < arrivalSectionLength {
-		for index, timetable := range result.Timetable {
-			if index < arrivalSectionLength-len(result.Realtime) {
-				cardText += fmt.Sprintf(
-					"%s분 시점 출발\n",
-					strings.Replace(strings.TrimSuffix(timetable.Time, ":00"), ":", "시 ", 1),
-				)
-			}
-		}
-	}
-	if len(result.Realtime) == 0 && len(result.Timetable) == 0 {
-		cardText += noArrivalText
-	}
-	return cardText
-}
-
-func GenerateMergedBusSectionText(header string, result []MergedBusRealtime) string {
-	cardText := ""
-	cardText += header
-	for index, realtime := range result {
-		cardText += fmt.Sprintf("%-4s %3d분 후 도착(%d전,%d석)\n", realtime.Name, realtime.Time, realtime.Stop, realtime.Seat)
-		if index == arrivalSectionLength-1 {
-			break
-		}
-	}
-	return cardText
-}
-
-func GetSangnoksuStationText(result map[int]map[int]BusRoute) string {
-	campus := result[216000379][216000068]
-	sangnoksu := result[216000138][216000068]
-	cardText := ""
-	cardText += GenerateBusSectionText("10-1 (ERICA)\n", campus)
-	cardText += GenerateBusSectionText("\n10-1 (상록수역)\n", sangnoksu)
-	return cardText
-}
-
-func GetGangnamStationText(result map[int]map[int]BusRoute) string {
-	bus3102 := result[216000379][216000061]
-	bus3100N := result[216000719][216000096]
-	cardText := ""
-	cardText += GenerateBusSectionText("3102 (ERICA)\n", bus3102)
-	cardText += GenerateBusSectionText("\n3100N (한양대정문)\n", bus3100N)
-	return cardText
-}
-
-func GetSuwonStationText(result map[int]map[int]BusRoute) string {
-	bus7071 := result[216000719][216000070]
-	bus7070 := result[216000070][216000104]
-	bus110 := result[216000070][217000014]
-	bus9090 := result[216000070][200000015]
-	cardText := ""
-	cardText += GenerateBusSectionText("707-1 (한양대정문)\n", bus7071)
-	mergedBusRealtime := make([]MergedBusRealtime, 0)
-	for _, realtime := range bus7070.Realtime {
-		mergedBusRealtime = append(mergedBusRealtime, MergedBusRealtime{
-			Name: bus7070.Info.Name,
-			Stop: realtime.Stop,
-			Time: int(realtime.Time),
-			Seat: realtime.Seat,
-		})
-	}
-	for _, realtime := range bus110.Realtime {
-		mergedBusRealtime = append(mergedBusRealtime, MergedBusRealtime{
-			Name: bus110.Info.Name,
-			Stop: realtime.Stop,
-			Time: int(realtime.Time),
-			Seat: realtime.Seat,
-		})
-	}
-	for _, realtime := range bus9090.Realtime {
-		mergedBusRealtime = append(mergedBusRealtime, MergedBusRealtime{
-			Name: bus9090.Info.Name,
-			Stop: realtime.Stop,
-			Time: int(realtime.Time),
-			Seat: realtime.Seat,
-		})
-	}
-	// Sort by time
-	sort.Slice(mergedBusRealtime, func(i, j int) bool {
-		return mergedBusRealtime[i].Time < mergedBusRealtime[j].Time
-	})
-	cardText += GenerateMergedBusSectionText("\n기타 (성안고)\n", mergedBusRealtime)
-	return cardText
-}
-
-func GetGunpoText(result map[int]map[int]BusRoute) string {
-	bus3100 := result[216000719][216000026]
-	bus3101 := result[216000719][216000043]
-	cardText := ""
-	cardText += GenerateBusSectionText("3100 (한양대정문)\n", bus3100)
-	cardText += GenerateBusSectionText("\n3101 (한양대정문)\n", bus3101)
-	return cardText
-}
-
-func GetGwangmyeongText(result map[int]map[int]BusRoute) string {
-	bus50 := result[216000759][216000075]
-	cardText := ""
-	cardText += GenerateBusSectionText("50 (성포주공4단지)\n", bus50)
-	return cardText
+type busRouteSpec struct {
+	Key   busKey
+	Label string
 }
 
 func GetBusMessage(ctx fiber.Ctx) error {
-	body := new(schema.SkillPayload)
-	if err := ctx.Bind().JSON(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+	if _, bindErr := bindSkillPayload(ctx); bindErr != nil {
+		return badRequest(ctx, bindErr)
 	}
-	// Group shuttle timetable by stop and destination
-	result := QueryBusDepartureData(ctx)
-	resultMap := make(map[int]map[int]BusRoute)
-	for _, busStop := range result {
-		if resultMap[busStop.ID] == nil {
-			resultMap[busStop.ID] = make(map[int]BusRoute)
-		}
-		for _, busRoute := range busStop.Routes {
-			resultMap[busStop.ID][busRoute.Info.ID] = busRoute
-		}
+	client, err := backendClient(ctx)
+	if err != nil {
+		return backendFailure(ctx, "bus", "버스", err)
 	}
-	sangnoksuText := GetSangnoksuStationText(resultMap)
-	gangnamText := GetGangnamStationText(resultMap)
-	suwonText := GetSuwonStationText(resultMap)
-	gunpoText := GetGunpoText(resultMap)
-	gwangMyeongText := GetGwangmyeongText(resultMap)
-	response := schema.SkillResponse{
-		Version: "2.0",
-		Template: schema.SkillTemplate{
-			Outputs: []schema.Component{
-				schema.Carousel{
-					Content: schema.CarouselContent{
-						Type: "textCard",
-						Items: []schema.Content{
-							schema.TextCardContent{
-								Title:       "상록수역",
-								Description: strings.Trim(sangnoksuText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       "강남역",
-								Description: strings.Trim(gangnamText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       "수원역",
-								Description: strings.Trim(suwonText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       "군포/의왕",
-								Description: strings.Trim(gunpoText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       "광명역",
-								Description: strings.Trim(gwangMyeongText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-						},
-					},
-				},
+
+	queryCtx, cancel := queryContext()
+	defer cancel()
+	var result busResult
+	if queryErr := client.Query(queryCtx, busQuery, nil, &result); queryErr != nil {
+		return backendFailure(ctx, "bus", "버스", queryErr)
+	}
+
+	byKey := make(map[busKey]busRouteStop, len(result.Bus))
+	for _, routeStop := range result.Bus {
+		byKey[busKey{Route: routeStop.Route.Seq, Stop: routeStop.Stop.Seq}] = routeStop
+	}
+	cardSpecs := busCardSpecs()
+	items := make([]any, 0, len(cardSpecs))
+	for _, card := range cardSpecs {
+		items = append(items, busListCard(card, byKey))
+	}
+	return ctx.JSON(schema.CarouselResponse("listCard", items, navigationQuickReplies("버스")))
+}
+
+func busCardSpecs() []busCardSpec {
+	return []busCardSpec{
+		{
+			Title: "상록수역 방면",
+			Routes: []busRouteSpec{
+				{Key: busKey{Route: route10Dash1, Stop: stopERICA}, Label: "10-1 · ERICA"},
+				{Key: busKey{Route: route10Dash1, Stop: stopSangnoksu}, Label: "10-1 · 상록수역"},
 			},
-			QuickReplies: []schema.QuickReply{
-				{
-					Label:       "휴아봇 앱 설치",
-					Action:      "block",
-					MessageText: "휴아봇 앱 설치",
-					BlockID:     "6077ca2de2039a2ba38c755f",
-					Extra:       map[string]string{},
-				},
+		},
+		{
+			Title: "강남역 방면",
+			Routes: []busRouteSpec{
+				{Key: busKey{Route: route3102, Stop: stopERICA}, Label: "3102 · ERICA"},
+				{Key: busKey{Route: route3100N, Stop: stopMainGate}, Label: "3100N · 정문"},
+			},
+		},
+		{
+			Title: "수원역 방면",
+			Routes: []busRouteSpec{
+				{Key: busKey{Route: route7070, Stop: stopHanyangUniversity}, Label: "7070 · 한양대입구"},
+				{Key: busKey{Route: route9090, Stop: stopHanyangUniversity}, Label: "9090 · 한양대입구"},
+			},
+		},
+		{
+			Title: "군포·의왕 방면",
+			Routes: []busRouteSpec{
+				{Key: busKey{Route: route3100, Stop: stopMainGate}, Label: "3100 · 정문"},
+				{Key: busKey{Route: route3101, Stop: stopMainGate}, Label: "3101 · 정문"},
+			},
+		},
+		{
+			Title: "광명역 방면",
+			Routes: []busRouteSpec{
+				{Key: busKey{Route: route50, Stop: stopSeongpo}, Label: "50 · 성포주공4단지"},
 			},
 		},
 	}
-	return ctx.JSON(response)
+}
+
+func busListCard(spec busCardSpec, results map[busKey]busRouteStop) schema.ListCard {
+	items := make([]schema.ListItem, 0, len(spec.Routes))
+	for _, route := range spec.Routes {
+		items = append(items, schema.ListItem{
+			Title:       route.Label,
+			Description: busArrivalDescription(results[route.Key].Arrival),
+		})
+	}
+	return schema.ListCard{
+		Header:  schema.ListItem{Title: spec.Title},
+		Items:   items,
+		Buttons: []schema.Button{appButton("/bus", "전체 버스")},
+	}
+}
+
+func busArrivalDescription(arrivals []busArrival) string {
+	if len(arrivals) == 0 {
+		return noArrivalText
+	}
+	lines := make([]string, 0, min(len(arrivals), maxBusArrivalPreview))
+	for index, arrival := range arrivals {
+		if index == maxBusArrivalPreview {
+			break
+		}
+		lines = append(lines, formatBusArrival(arrival))
+	}
+	return strings.Join(lines, " / ")
+}
+
+func formatBusArrival(arrival busArrival) string {
+	if !arrival.IsRealtime {
+		departure := arrival.ArrivalTime
+		if departure == "" {
+			departure = arrival.Time
+		}
+		if departure != "" {
+			return shortTime(departure) + " 도착 예정"
+		}
+	}
+	parts := make([]string, 0, busArrivalPartCount)
+	if arrival.Minutes != nil {
+		if *arrival.Minutes <= 0 {
+			parts = append(parts, "곧 도착")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d분", *arrival.Minutes))
+		}
+	}
+	if arrival.Stops != nil {
+		parts = append(parts, fmt.Sprintf("%d정거장", *arrival.Stops))
+	}
+	if arrival.Seats != nil && *arrival.Seats >= 0 {
+		parts = append(parts, fmt.Sprintf("%d석", *arrival.Seats))
+	}
+	if arrival.LowFloor != nil && *arrival.LowFloor {
+		parts = append(parts, "저상")
+	}
+	if len(parts) == 0 {
+		parts = append(parts, "도착 정보 확인 중")
+	}
+	return strings.Join(parts, " · ")
 }

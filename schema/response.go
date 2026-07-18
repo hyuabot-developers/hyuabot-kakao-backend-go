@@ -1,95 +1,98 @@
 package schema
 
-type (
-	SkillResponse struct {
-		Version  string        `json:"version"`
-		Template SkillTemplate `json:"template"`
-	}
+const Version = "2.0"
 
-	SkillTemplate struct {
-		Outputs      []Component  `json:"outputs"`
-		QuickReplies []QuickReply `json:"quickReplies"`
-	}
+type SkillResponse struct {
+	Version  string        `json:"version"`
+	Template SkillTemplate `json:"template"`
+}
 
-	Component interface {
-	}
-	Content interface{}
+type SkillTemplate struct {
+	Outputs      []any        `json:"outputs"`
+	QuickReplies []QuickReply `json:"quickReplies,omitempty"`
+}
 
-	SimpleText struct {
-		Component Component         `json:"component,omitempty"`
-		Content   SimpleTextContent `json:"simpleText"`
-	}
+type SimpleTextOutput struct {
+	SimpleText SimpleText `json:"simpleText"`
+}
 
-	SimpleTextContent struct {
-		Content Content `json:"content,omitempty"`
-		Text    string  `json:"text"`
-	}
+type SimpleText struct {
+	Text string `json:"text"`
+}
 
-	SimpleImage struct {
-		Component Component          `json:"component,omitempty"`
-		Content   SimpleImageContent `json:"simpleImage"`
-	}
+type CarouselOutput struct {
+	Carousel Carousel `json:"carousel"`
+}
 
-	SimpleImageContent struct {
-		Content  Content `json:"content,omitempty"`
-		ImageURL string  `json:"imageUrl"`
-		AltText  string  `json:"altText"`
-	}
+type Carousel struct {
+	Type  string `json:"type"`
+	Items []any  `json:"items"`
+}
 
-	TextCard struct {
-		Component Component       `json:"component,omitempty"`
-		Content   TextCardContent `json:"textCard"`
-	}
+type ListCard struct {
+	Header  ListItem   `json:"header"`
+	Items   []ListItem `json:"items"`
+	Buttons []Button   `json:"buttons,omitempty"`
+}
 
-	TextCardContent struct {
-		Content     Content      `json:"content,omitempty"`
-		Title       string       `json:"title"`
-		Description string       `json:"description"`
-		Buttons     []CardButton `json:"buttons"`
-	}
+type ListItem struct {
+	Title       string         `json:"title"`
+	Description string         `json:"description,omitempty"`
+	ImageURL    string         `json:"imageUrl,omitempty"`
+	Action      string         `json:"action,omitempty"`
+	MessageText string         `json:"messageText,omitempty"`
+	BlockID     string         `json:"blockId,omitempty"`
+	Extra       map[string]any `json:"extra,omitempty"`
+}
 
-	BasicCard struct {
-		Component Component        `json:"component,omitempty"`
-		Content   BasicCardContent `json:"basicCard"`
-	}
+type ItemCard struct {
+	Title       string     `json:"title,omitempty"`
+	Description string     `json:"description,omitempty"`
+	ItemList    []ItemList `json:"itemList"`
+	Buttons     []Button   `json:"buttons,omitempty"`
+}
 
-	BasicCardContent struct {
-		Content     Content            `json:"content,omitempty"`
-		Title       string             `json:"title"`
-		Description string             `json:"description"`
-		Thumbnail   BasicCardThumbnail `json:"thumbnail"`
-		Buttons     []CardButton       `json:"buttons"`
-	}
+type ItemList struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
 
-	BasicCardThumbnail struct {
-		ImageURL string `json:"imageUrl"`
-		AltText  string `json:"altText"`
-	}
+type Button struct {
+	Label       string         `json:"label"`
+	Action      string         `json:"action"`
+	WebLinkURL  string         `json:"webLinkUrl,omitempty"`
+	MessageText string         `json:"messageText,omitempty"`
+	PhoneNumber string         `json:"phoneNumber,omitempty"`
+	BlockID     string         `json:"blockId,omitempty"`
+	Extra       map[string]any `json:"extra,omitempty"`
+}
 
-	CardButton struct {
-		Label       string `json:"label"`
-		Action      string `json:"action"`
-		WebLinkURL  string `json:"webLinkUrl"`
-		MessageText string `json:"messageText"`
-		PhoneNumber string `json:"phoneNumber"`
-		BlockID     string `json:"blockId"`
-	}
+type QuickReply struct {
+	Label       string         `json:"label"`
+	Action      string         `json:"action"`
+	MessageText string         `json:"messageText,omitempty"`
+	BlockID     string         `json:"blockId,omitempty"`
+	Extra       map[string]any `json:"extra,omitempty"`
+}
 
-	Carousel struct {
-		Component Component       `json:"component,omitempty"`
-		Content   CarouselContent `json:"carousel"`
+func TextResponse(text string, quickReplies []QuickReply) SkillResponse {
+	return SkillResponse{
+		Version: Version,
+		Template: SkillTemplate{
+			Outputs:      []any{SimpleTextOutput{SimpleText: SimpleText{Text: text}}},
+			QuickReplies: quickReplies,
+		},
 	}
+}
 
-	CarouselContent struct {
-		Type  string    `json:"type"`
-		Items []Content `json:"items"`
+func CarouselResponse(carouselType string, items []any, quickReplies []QuickReply) SkillResponse {
+	return SkillResponse{
+		Version: Version,
+		Template: SkillTemplate{
+			Outputs: []any{
+				CarouselOutput{Carousel: Carousel{Type: carouselType, Items: items}},
+			},
+			QuickReplies: quickReplies,
+		},
 	}
-
-	QuickReply struct {
-		Label       string            `json:"label"`
-		Action      string            `json:"action"`
-		MessageText string            `json:"messageText"`
-		BlockID     string            `json:"blockId"`
-		Extra       map[string]string `json:"extra"`
-	}
-)
+}
