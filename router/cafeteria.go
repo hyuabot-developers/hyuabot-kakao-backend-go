@@ -1,139 +1,140 @@
 package router
 
 import (
-	"context"
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/hasura/go-graphql-client"
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
-const lunchStartHour = 9
-const lunchEndHour = 17
+const (
+	lunchStartHour      = 9
+	lunchEndHour        = 17
+	ericaCampusID       = 2
+	maxCafeteriaCards   = 5
+	maxMenusPerListCard = 4
+	quickReplyCapacity  = 7
+)
 
-type Cafeteria struct {
-	ID   int
-	Menu []Menu
+const cafeteriaQuery = `
+query KakaoCafeteria($date: Date!, $campus: Int!) {
+  cafeteria(input: {date: $date, campus: $campus}) {
+    seq
+    name
+    menus { type food price }
+  }
+}`
+
+type cafeteriaResult struct {
+	Cafeteria []cafeteria `json:"cafeteria"`
 }
 
-type Menu struct {
-	Menu  string
-	Price string
+type cafeteria struct {
+	Seq   int    `json:"seq"`
+	Name  string `json:"name"`
+	Menus []menu `json:"menus"`
 }
 
-func QueryCafeteriaDepartureData(ctx fiber.Ctx, date string, feedType string) []Cafeteria {
-	// GraphQL Client and check API server status
-	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
-	if !loaded {
-		panic("GraphQL client not found")
-	}
-	// Query cafeteria menu
-	var query struct {
-		Menu []Cafeteria `graphql:"menu (dateStr: $dateStr, campusId: 2, type_: [$type_])"`
-	}
-	variables := map[string]interface{}{
-		"dateStr": date,
-		"type_":   feedType,
-	}
-	queryError := client.Query(context.Background(), &query, variables)
-	if queryError != nil {
-		panic(queryError)
-	}
-	return query.Menu
-}
-
-func GenerateCafeteriaText(cafeteria Cafeteria) string {
-	cardText := ""
-	for _, menu := range cafeteria.Menu {
-		cardText += fmt.Sprintf("%s\n%s\n", strings.TrimSpace(menu.Menu), menu.Price)
-	}
-	if len(cardText) == 0 {
-		cardText += "식단 정보가 없습니다\n"
-	}
-	return cardText
+type menu struct {
+	Type  string `json:"type"`
+	Food  string `json:"food"`
+	Price string `json:"price"`
 }
 
 func GetCafeteriaMessage(ctx fiber.Ctx) error {
-	body := new(schema.SkillPayload)
-	if err := ctx.Bind().JSON(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+	payload, err := bindSkillPayload(ctx)
+	if err != nil {
+		return badRequest(ctx, err)
+	}
+	client, err := backendClient(ctx)
+	if err != nil {
+		return backendFailure(ctx, "cafeteria", "학식", err)
+	}
+
+	currentTime := currentServiceTime()
+	mealType := requestedMealType(payload, currentTime.Hour())
+	queryCtx, cancel := queryContext()
+	defer cancel()
+	var result cafeteriaResult
+	if queryErr := client.Query(queryCtx, cafeteriaQuery, map[string]any{
+		"date":   currentTime.Format("2006-01-02"),
+		"campus": ericaCampusID,
+	}, &result); queryErr != nil {
+		return backendFailure(ctx, "cafeteria", "학식", queryErr)
+	}
+
+	items := make([]any, 0, min(len(result.Cafeteria), maxCafeteriaCards))
+	for _, cafeteria := range result.Cafeteria {
+		if len(items) == maxCafeteriaCards {
+			break
+		}
+		items = append(items, cafeteriaCard(cafeteria, mealType))
+	}
+	if len(items) == 0 {
+		return ctx.JSON(schema.TextResponse(
+			"오늘 등록된 학식 정보가 없어요.",
+			cafeteriaQuickReplies(mealType),
+		))
+	}
+
+	return ctx.JSON(schema.CarouselResponse("listCard", items, cafeteriaQuickReplies(mealType)))
+}
+
+func requestedMealType(payload *schema.SkillPayload, hour int) string {
+	for _, candidate := range []string{payload.Action.Params["meal"], payload.Action.Params["type"]} {
+		switch candidate {
+		case "조식", "중식", "석식":
+			return candidate
+		}
+	}
+	if strings.Contains(payload.UserRequest.Utterance, "조식") {
+		return "조식"
+	}
+	if strings.Contains(payload.UserRequest.Utterance, "석식") {
+		return "석식"
+	}
+	if hour < lunchStartHour {
+		return "조식"
+	}
+	if hour >= lunchEndHour {
+		return "석식"
+	}
+	return "중식"
+}
+
+func cafeteriaCard(cafeteria cafeteria, mealType string) schema.ListCard {
+	items := make([]schema.ListItem, 0, maxMenusPerListCard)
+	for _, menu := range cafeteria.Menus {
+		if menu.Type != mealType || len(items) == maxMenusPerListCard {
+			continue
+		}
+		items = append(items, schema.ListItem{
+			Title:       strings.TrimSpace(menu.Food),
+			Description: strings.TrimSpace(menu.Price),
 		})
 	}
-	// Get current datetime
-	location, err := time.LoadLocation("Asia/Seoul")
-	if err != nil {
-		panic(err)
+	if len(items) == 0 {
+		items = append(items, schema.ListItem{Title: "등록된 메뉴가 없어요"})
 	}
-	currentTime := time.Now().In(location)
-	// Set food type
-	feedType := "중식"
-	if currentTime.Hour() >= lunchEndHour {
-		feedType = "석식"
-	} else if currentTime.Hour() < lunchStartHour {
-		feedType = "조식"
+	return schema.ListCard{
+		Header:  schema.ListItem{Title: cafeteria.Name + " · " + mealType},
+		Items:   items,
+		Buttons: []schema.Button{appButton("/cafeteria", "전체 메뉴")},
 	}
-	// Group shuttle timetable by stop and destination
-	result := QueryCafeteriaDepartureData(ctx, time.Now().Format("2006-01-02"), feedType)
-	resultMap := make(map[int]Cafeteria)
-	for _, cafeteria := range result {
-		resultMap[cafeteria.ID] = cafeteria
+}
+
+func cafeteriaQuickReplies(currentMeal string) []schema.QuickReply {
+	replies := make([]schema.QuickReply, 0, quickReplyCapacity)
+	for _, mealType := range []string{"조식", "중식", "석식"} {
+		if mealType == currentMeal {
+			continue
+		}
+		replies = append(replies, schema.QuickReply{
+			Label:       mealType,
+			Action:      "message",
+			MessageText: mealType + " 메뉴",
+		})
 	}
-	staffCafeteriaText := GenerateCafeteriaText(resultMap[11])
-	studentCafeteriaText := GenerateCafeteriaText(resultMap[12])
-	dormitoryCafeteriaText := GenerateCafeteriaText(resultMap[13])
-	foodCourtCafeteriaText := GenerateCafeteriaText(resultMap[14])
-	businessCafeteriaText := GenerateCafeteriaText(resultMap[15])
-	response := schema.SkillResponse{
-		Version: "2.0",
-		Template: schema.SkillTemplate{
-			Outputs: []schema.Component{
-				schema.Carousel{
-					Content: schema.CarouselContent{
-						Type: "textCard",
-						Items: []schema.Content{
-							schema.TextCardContent{
-								Title:       fmt.Sprintf("%s(%s)", "교직원식당", feedType),
-								Description: strings.Trim(staffCafeteriaText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       fmt.Sprintf("%s(%s)", "학생식당", feedType),
-								Description: strings.Trim(studentCafeteriaText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       fmt.Sprintf("%s(%s)", "창의인재원식당", feedType),
-								Description: strings.Trim(dormitoryCafeteriaText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       fmt.Sprintf("%s(%s)", "푸드코트", feedType),
-								Description: strings.Trim(foodCourtCafeteriaText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       fmt.Sprintf("%s(%s)", "창업보육센터", feedType),
-								Description: strings.Trim(businessCafeteriaText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-						},
-					},
-				},
-			},
-			QuickReplies: []schema.QuickReply{
-				{
-					Label:       "휴아봇 앱 설치",
-					Action:      "block",
-					MessageText: "휴아봇 앱 설치",
-					BlockID:     "6077ca2de2039a2ba38c755f",
-					Extra:       map[string]string{},
-				},
-			},
-		},
-	}
-	return ctx.JSON(response)
+	replies = append(replies, navigationQuickReplies("학식")...)
+	return replies
 }

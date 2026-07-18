@@ -2,8 +2,11 @@ package schema
 
 type (
 	SkillPayload struct {
-		Bot    Bot    `json:"bot"`
-		Intent Intent `json:"intent"`
+		Bot         Bot         `json:"bot"`
+		Intent      Intent      `json:"intent"`
+		Action      Action      `json:"action"`
+		UserRequest UserRequest `json:"userRequest"`
+		Flow        Flow        `json:"flow"`
 	}
 
 	Bot struct {
@@ -35,9 +38,18 @@ type (
 	}
 
 	Action struct {
-		SkillID string         `json:"id"`
-		Name    string         `json:"name"`
-		Extra   map[string]any `json:"clientExtra"`
+		SkillID      string                 `json:"id"`
+		Name         string                 `json:"name"`
+		Params       map[string]string      `json:"params"`
+		DetailParams map[string]DetailParam `json:"detailParams"`
+		Extra        map[string]any         `json:"clientExtra"`
+	}
+
+	DetailParam struct {
+		Origin string         `json:"origin"`
+		Value  string         `json:"value"`
+		Group  string         `json:"groupName"`
+		Extra  map[string]any `json:"sysDate,omitempty"`
 	}
 
 	UserRequest struct {
@@ -63,5 +75,15 @@ type (
 		PlusFriendUserKey string `json:"plusFriendUserKey"`
 		AppUserID         string `json:"appUserId"`
 		IsFriend          bool   `json:"isFriend"`
+	}
+
+	Flow struct {
+		Trigger   Trigger `json:"trigger"`
+		LastBlock Block   `json:"lastBlock"`
+	}
+
+	Trigger struct {
+		Type          string `json:"type"`
+		ReferrerBlock Block  `json:"referrerBlock"`
 	}
 )

@@ -1,59 +1,36 @@
 package router
 
 import (
-	"context"
-
 	"github.com/gofiber/fiber/v3"
-	"github.com/hasura/go-graphql-client"
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
+const healthcheckQuery = `query Healthcheck { __typename }`
+
 func GetHealthCheckMessage(ctx fiber.Ctx) error {
-	body := new(schema.SkillPayload)
-	if err := ctx.Bind().JSON(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+	client, err := backendClient(ctx)
+	if err != nil {
+		return healthcheckFailure(ctx, err)
 	}
-	// GraphQL Client and check API server status
-	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
-	if !loaded {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "GraphQL client not found",
-		})
+
+	queryCtx, cancel := queryContext()
+	defer cancel()
+	var result struct {
+		TypeName string `json:"__typename"`
 	}
-	var query struct {
-		Health bool
+	if queryErr := client.Query(queryCtx, healthcheckQuery, nil, &result); queryErr != nil {
+		return healthcheckFailure(ctx, queryErr)
 	}
-	queryError := client.Query(context.Background(), &query, nil)
-	if queryError != nil || !query.Health {
-		response := schema.SkillResponse{
-			Version: "2.0",
-			Template: schema.SkillTemplate{
-				Outputs: []schema.Component{
-					schema.SimpleText{
-						Content: schema.SimpleTextContent{
-							Text: "API 서버 비정상",
-						},
-					},
-				},
-				QuickReplies: []schema.QuickReply{},
-			},
-		}
-		return ctx.JSON(response)
+
+	if ctx.Method() == fiber.MethodGet {
+		return ctx.JSON(fiber.Map{"status": "ok"})
 	}
-	response := schema.SkillResponse{
-		Version: "2.0",
-		Template: schema.SkillTemplate{
-			Outputs: []schema.Component{
-				schema.SimpleText{
-					Content: schema.SimpleTextContent{
-						Text: "API 서버 정상",
-					},
-				},
-			},
-			QuickReplies: []schema.QuickReply{},
-		},
+	return ctx.JSON(schema.TextResponse("API 서버가 정상적으로 동작하고 있어요.", nil))
+}
+
+func healthcheckFailure(ctx fiber.Ctx, err error) error {
+	if ctx.Method() == fiber.MethodGet {
+		return ctx.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "unavailable"})
 	}
-	return ctx.JSON(response)
+	return backendFailure(ctx, "healthcheck", "상태 확인", err)
 }

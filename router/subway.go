@@ -1,154 +1,171 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/hasura/go-graphql-client"
 	"github.com/hyuabot-developers/hyuabot-kakao-backend-go/schema"
 )
 
-type SubwayStation struct {
-	ID        string
-	Realtime  SubwayRealtime
-	Timetable SubwayTimetable
+const subwayQuery = `
+query KakaoSubway($weekday: String!) {
+  subway(input: {keys: [
+    {stationID: "K449", direction: ["up", "down"], weekdays: [$weekday], limit: 4},
+    {stationID: "K251", direction: ["up", "down"], weekdays: [$weekday], limit: 4}
+  ]}) {
+    stationID
+    name
+    route { name }
+    arrival {
+      direction
+      entries {
+        minutes
+        isRealtime
+        location
+        stops
+        isExpress
+        isLast
+        terminal { name }
+      }
+    }
+  }
+}`
+
+const maxSubwayArrivalPreview = 2
+
+type subwayResult struct {
+	Subway []subwayStation `json:"subway"`
 }
 
-type SubwayRealtime struct {
-	Up   []SubwayRealtimeItem
-	Down []SubwayRealtimeItem
+type subwayStation struct {
+	StationID string               `json:"stationID"`
+	Name      string               `json:"name"`
+	Route     subwayRoute          `json:"route"`
+	Arrival   []subwayArrivalGroup `json:"arrival"`
 }
 
-type SubwayRealtimeItem struct {
-	Location string
-	Time     float64
-	Terminal SubwayTerminalStation
+type subwayRoute struct {
+	Name string `json:"name"`
 }
 
-type SubwayTimetable struct {
-	Up   []SubwayTimetableItem
-	Down []SubwayTimetableItem
+type subwayArrivalGroup struct {
+	Direction string          `json:"direction"`
+	Entries   []subwayArrival `json:"entries"`
 }
 
-type SubwayTimetableItem struct {
-	Time     string
-	Terminal SubwayTerminalStation
+type subwayArrival struct {
+	Minutes    int            `json:"minutes"`
+	IsRealtime bool           `json:"isRealtime"`
+	Location   string         `json:"location"`
+	Stops      *int           `json:"stops"`
+	IsExpress  *bool          `json:"isExpress"`
+	IsLast     *bool          `json:"isLast"`
+	Terminal   subwayTerminal `json:"terminal"`
 }
 
-type SubwayTerminalStation struct {
-	Name string
-}
-
-func QuerySubwayDepartureData(ctx fiber.Ctx) []SubwayStation {
-	// GraphQL Client and check API server status
-	client, loaded := ctx.Locals("graphQLClient").(*graphql.Client)
-	if !loaded {
-		panic("GraphQL client not found")
-	}
-	// Get current datetime
-	location, err := time.LoadLocation("Asia/Seoul")
-	if err != nil {
-		panic(err)
-	}
-	currentTime := time.Now().In(location)
-	// Query Shuttle Timetable
-	var query struct {
-		Subway []SubwayStation `graphql:"subway (id_: [\"K449\", \"K251\"], startStr: $start)"`
-	}
-	variables := map[string]interface{}{
-		"start": currentTime.Format("15:04"),
-	}
-	queryError := client.Query(context.Background(), &query, variables)
-	if queryError != nil {
-		panic(queryError)
-	}
-	return query.Subway
-}
-
-func GenerateSubwaySectionText(realtime []SubwayRealtimeItem, timetable []SubwayTimetableItem) string {
-	cardText := ""
-	for index, realtime := range realtime {
-		cardText += fmt.Sprintf("%s행 %2d분 후 도착(%s)\n", realtime.Terminal.Name, int(realtime.Time), realtime.Location)
-		if index == arrivalSectionLength-1 {
-			break
-		}
-	}
-	if len(realtime) < arrivalSectionLength {
-		for index, timetable := range timetable {
-			if index < arrivalSectionLength-len(realtime) {
-				cardText += fmt.Sprintf(
-					"%s행 %s분 출발\n",
-					timetable.Terminal.Name,
-					strings.Replace(timetable.Time[:5], ":", "시 ", 1),
-				)
-			}
-		}
-	}
-	if len(realtime) == 0 && len(timetable) == 0 {
-		cardText += noArrivalText
-	}
-	return cardText
-}
-
-func GenerateSubwayText(upHeaderText string, downHeaderText string, station SubwayStation) string {
-	cardText := ""
-	cardText += upHeaderText
-	cardText += GenerateSubwaySectionText(station.Realtime.Up, station.Timetable.Up)
-	cardText += downHeaderText
-	cardText += GenerateSubwaySectionText(station.Realtime.Down, station.Timetable.Down)
-	return cardText
+type subwayTerminal struct {
+	Name string `json:"name"`
 }
 
 func GetSubwayMessage(ctx fiber.Ctx) error {
-	body := new(schema.SkillPayload)
-	if err := ctx.Bind().JSON(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+	if _, bindErr := bindSkillPayload(ctx); bindErr != nil {
+		return badRequest(ctx, bindErr)
+	}
+	client, err := backendClient(ctx)
+	if err != nil {
+		return backendFailure(ctx, "subway", "지하철", err)
+	}
+
+	currentTime := currentServiceTime()
+	weekday := "weekdays"
+	if currentTime.Weekday() == time.Saturday || currentTime.Weekday() == time.Sunday {
+		weekday = "weekends"
+	}
+	queryCtx, cancel := queryContext()
+	defer cancel()
+	var result subwayResult
+	if queryErr := client.Query(queryCtx, subwayQuery, map[string]any{"weekday": weekday}, &result); queryErr != nil {
+		return backendFailure(ctx, "subway", "지하철", queryErr)
+	}
+
+	items := make([]any, 0, len(result.Subway))
+	for _, station := range result.Subway {
+		items = append(items, subwayCard(station, currentTime.Format("15:04")))
+	}
+	if len(items) == 0 {
+		return ctx.JSON(schema.TextResponse(
+			"현재 지하철 도착 정보가 없어요.",
+			navigationQuickReplies("지하철"),
+		))
+	}
+	return ctx.JSON(schema.CarouselResponse("itemCard", items, navigationQuickReplies("지하철")))
+}
+
+func subwayCard(station subwayStation, updatedAt string) schema.ItemCard {
+	rows := make([]schema.ItemList, 0, len(station.Arrival))
+	for _, group := range station.Arrival {
+		rows = append(rows, schema.ItemList{
+			Title:       subwayDirectionName(station.StationID, group.Direction),
+			Description: subwayArrivalDescription(group.Entries),
 		})
 	}
-	result := QuerySubwayDepartureData(ctx)
-	resultMap := make(map[string]SubwayStation)
-	for _, station := range result {
-		resultMap[station.ID] = station
+	if len(rows) == 0 {
+		rows = append(rows, schema.ItemList{Title: "도착 정보", Description: noArrivalText})
 	}
-	// Create response text
-	line4Text := GenerateSubwayText("당고개 방면\n", "\n오이도 방면\n", resultMap["K449"])
-	lineSuinText := GenerateSubwayText("청량리 방면\n", "\n인천 방면\n", resultMap["K251"])
-	response := schema.SkillResponse{
-		Version: "2.0",
-		Template: schema.SkillTemplate{
-			Outputs: []schema.Component{
-				schema.Carousel{
-					Content: schema.CarouselContent{
-						Type: "textCard",
-						Items: []schema.Content{
-							schema.TextCardContent{
-								Title:       "4호선",
-								Description: strings.Trim(line4Text, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-							schema.TextCardContent{
-								Title:       "수인분당선",
-								Description: strings.Trim(lineSuinText, "\n"),
-								Buttons:     []schema.CardButton{},
-							},
-						},
-					},
-				},
-			},
-			QuickReplies: []schema.QuickReply{
-				{
-					Label:       "휴아봇 앱 설치",
-					Action:      "block",
-					MessageText: "휴아봇 앱 설치",
-					BlockID:     "6077ca2de2039a2ba38c755f",
-					Extra:       map[string]string{},
-				},
-			},
-		},
+	title := station.Route.Name
+	if title == "" {
+		title = station.Name
 	}
-	return ctx.JSON(response)
+	return schema.ItemCard{
+		Title:       title + " · " + station.Name,
+		Description: updatedAt + " 기준",
+		ItemList:    rows,
+		Buttons:     []schema.Button{appButton("/subway", "전체 지하철")},
+	}
+}
+
+func subwayDirectionName(stationID string, direction string) string {
+	switch stationID + ":" + direction {
+	case "K449:up":
+		return "당고개 방면"
+	case "K449:down":
+		return "오이도 방면"
+	case "K251:up":
+		return "청량리 방면"
+	case "K251:down":
+		return "인천 방면"
+	default:
+		return direction + " 방면"
+	}
+}
+
+func subwayArrivalDescription(arrivals []subwayArrival) string {
+	if len(arrivals) == 0 {
+		return noArrivalText
+	}
+	lines := make([]string, 0, min(len(arrivals), maxSubwayArrivalPreview))
+	for index, arrival := range arrivals {
+		if index == maxSubwayArrivalPreview {
+			break
+		}
+		parts := []string{fmt.Sprintf("%d분", arrival.Minutes)}
+		if arrival.Terminal.Name != "" {
+			parts = append(parts, arrival.Terminal.Name+"행")
+		}
+		if arrival.Location != "" {
+			parts = append(parts, arrival.Location)
+		} else if arrival.Stops != nil {
+			parts = append(parts, fmt.Sprintf("%d정거장 전", *arrival.Stops))
+		}
+		if arrival.IsExpress != nil && *arrival.IsExpress {
+			parts = append(parts, "급행")
+		}
+		if !arrival.IsRealtime {
+			parts = append(parts, "시간표")
+		}
+		lines = append(lines, strings.Join(parts, " · "))
+	}
+	return strings.Join(lines, " / ")
 }
