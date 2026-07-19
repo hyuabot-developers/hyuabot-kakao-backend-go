@@ -1,38 +1,34 @@
 name: Code Checks
 on:
-  push:
-    branches-ignore: ["main", "production"]
   pull_request:
     branches: ["main", "production"]
-    types:
-      - closed
   workflow_dispatch:
+concurrency:
+  group: code-check-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   lint:
     name: Code Linting
-    runs-on: ["self-hosted", "X64"]
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Golang
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: "1.26.5"
-          cache: 'false'
       - name: Lint Code
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: "latest"
           args: "--config=default.golangci.yml"
   build:
     name: Build Binary
-    needs: [lint]
-    runs-on: ["self-hosted", "X64"]
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Golang
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: "1.26.5"
-          cache: 'false'
       - name: Build Binary
         run: go build -o main .
