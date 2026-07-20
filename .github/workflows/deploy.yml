@@ -2,10 +2,8 @@ name: Deploy Kakao Backend
 
 on:
   pull_request:
-    branches:
-      - main
-    types:
-      - closed
+    branches: [main]
+    types: [closed]
   workflow_dispatch:
     inputs:
       no-cache:
@@ -18,13 +16,31 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: zsh -f {0}
+
 jobs:
-  deploy:
+  select-build-runner:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
-    runs-on: [self-hosted, Linux, ARM64, 1st]
+    runs-on: [self-hosted, ARM64, Linux, 1st]
+    outputs:
+      runner: ${{ steps.select.outputs.runner }}
+      use-mac: ${{ steps.select.outputs.use-mac }}
+    steps:
+      - name: Select container build runner
+        id: select
+        uses: hyuabot-developers/hyuabot-infrastructure/.github/actions/select-container-build-runner@5267e08410bc6ed01aaf774a49a2bda8809c2bd2
+        with:
+          token: ${{ secrets.RUNNER_ADMIN_TOKEN }}
+          mac-enabled: ${{ secrets.SSH_HOST != '' || secrets.ORACLE_TRANSFER_TARGET != '' }}
+
+  build-and-publish:
+    needs: select-build-runner
+    runs-on: ${{ fromJSON(needs.select-build-runner.outputs.runner) }}
     environment: production
     env:
-      IMAGE_NAME: localhost:5000/hyuabot-kakao-backend-go:latest
+      IMAGE_NAME: localhost:5000/hyuabot-kakao-backend-go:${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -33,7 +49,7 @@ jobs:
         with:
           keep-state: true
           cleanup: false
-      - name: Build Docker image
+      - name: Build image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -41,20 +57,36 @@ jobs:
           load: true
           tags: ${{ env.IMAGE_NAME }}
           no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs['no-cache'] }}
-      - name: Push Docker image
-        run: docker push "${IMAGE_NAME}"
-      - name: Sync image to worker registry
-        uses: hyuabot-developers/hyuabot-infrastructure/.github/actions/sync-local-registry@a091ea37f391ae60eb7828325782a397cc7cae9c
+      - name: Publish image to first-node registry
+        uses: hyuabot-developers/hyuabot-infrastructure/.github/actions/publish-local-registry@5267e08410bc6ed01aaf774a49a2bda8809c2bd2
         with:
           image: ${{ env.IMAGE_NAME }}
-      - name: Restart Kakao backend
-        run: kubectl -n hyuabot rollout restart deployment/hyuabot-chat-api
-      - name: Wait for rollout
-        run: kubectl -n hyuabot rollout status deployment/hyuabot-chat-api --timeout=180s
-      - name: Verify healthcheck
-        run: curl --fail --show-error --silent --retry 5 --retry-all-errors --retry-delay 3 http://127.0.0.1:30002/healthcheck
-      - name: Clean local Docker image
-        if: always()
+          use-mac: ${{ needs.select-build-runner.outputs.use-mac }}
+          first-host: ${{ secrets.SSH_HOST || secrets.ORACLE_TRANSFER_TARGET }}
+
+  sync-and-deploy:
+    needs: build-and-publish
+    runs-on: [self-hosted, ARM64, Linux, 1st]
+    environment: production
+    env:
+      IMAGE_NAME: localhost:5000/hyuabot-kakao-backend-go:${{ github.sha }}
+    steps:
+      - name: Sync image to worker registry
+        uses: hyuabot-developers/hyuabot-infrastructure/.github/actions/sync-local-registry@5267e08410bc6ed01aaf774a49a2bda8809c2bd2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+      - name: Deploy immutable Kakao backend image
         run: |
-          docker image rm "${IMAGE_NAME}" || true
-          docker image prune -f
+          kubectl -n hyuabot set image \
+            deployment/hyuabot-chat-api \
+            "api=${IMAGE_NAME}"
+          kubectl -n hyuabot rollout status \
+            deployment/hyuabot-chat-api \
+            --timeout=180s
+      - name: Verify healthcheck
+        run: |
+          curl --fail --show-error --silent \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 3 \
+            http://127.0.0.1:30002/healthcheck
